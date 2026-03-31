@@ -73,58 +73,12 @@ CCTK_BOOLEAN coc2cac_readpot "Whether to read the Potential or faraday tensor, T
 {
 } "False"
 
-CCTK_INT coc2cac_Nstars "Number of Single Neutron Stars to put on Grid"
+CCTK_BOOLEAN coc2cac_verbose "Enable verbose COCAL reader logging"
 {
-  1:30 :: ""
-} 1
+} "False"
 
-CCTK_REAL coc2cac_cen_x1 "X Position of centre 1"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_y1 "Y Position of centre 1"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_z1 "Z Position of centre 1"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_x2 "X Position of centre 2"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_y2 "Y Position of centre 2"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_z2 "Z Position of centre 2"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_x3 "X Position of centre 2"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_y3 "Y Position of centre 2"
-{
-  *:* :: ""
-} 0.0
-
-CCTK_REAL coc2cac_cen_z3 "Z Position of centre 2"
-{
-  *:* :: ""
-} 0.0
 
 CCTK_REAL coc2cac_ecc_cor_velx "X velocity of the CoM"
 {
   *:* :: ""
 } 0.0
-

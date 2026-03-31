@@ -6,41 +6,29 @@
 
 #define module_use use
 
-#include "Cocal/phys_constant.f90"
-#include "Cocal/def_matter_parameter.f90"
-#include "Cocal/def_quantities.f90"
+! RNS-specific modules
 #include "Cocal/def_bh_parameter.f90"
-
-#include "Cocal/make_array_2d.f90"
-#include "Cocal/grid_parameter.f90"
-#include "Cocal/interface_modules_cartesian.f90"
-#include "Cocal/coordinate_grav_r.f90"
-#include "Cocal/coordinate_grav_phi.f90"
-#include "Cocal/coordinate_grav_theta.f90"
-#include "Cocal/coordinate_grav_extended.f90"
-#include "Cocal/trigonometry_grav_theta.f90"
-#include "Cocal/trigonometry_grav_phi.f90"
-
-#include "Cocal/grid_parameter_binary_excision.f90"
-
-#include "Cocal/interface_IO_input_CF_grav_export.f90"
+#include "Cocal/def_bht_parameter.f90"
 #include "Cocal/interface_IO_input_WL_grav_export_hij.f90"
-#include "Cocal/interface_IO_input_grav_export_Kij.f90"
 #include "Cocal/interface_IO_input_CF_star_export.f90"
 #include "Cocal/interface_invhij_WL_export.f90"
 #include "Cocal/interface_index_vec_down2up_export.f90"
-#include "Cocal/interface_interpo_gr2fl_metric_CF_export.f90"
+#include "Cocal/interface_IO_input_matter_BHT_export.f90"
 #include "Cocal/interface_IO_input_grav_export_Ai.f90"
 #include "Cocal/interface_IO_input_grav_export_Faraday.f90"
 #include "Cocal/interface_IO_input_star4ve_export.f90"
 
-#include "Cocal/IO_input_CF_grav_export.f90"
+! RNS-specific subroutines
 #include "Cocal/IO_input_WL_grav_export_hij.f90"
-#include "Cocal/IO_input_grav_export_Kij.f90"
-
-
-#include "Cocal/interface_IO_input_matter_BHT_export.f90"
-
+#include "Cocal/IO_input_CF_star_export.f90"
+#include "Cocal/invhij_WL_export.f90"
+#include "Cocal/index_vec_down2up_export.f90"
+#include "Cocal/IO_input_grav_export_Ai.f90"
+#include "Cocal/IO_input_grav_export_Faraday.f90"
+#include "Cocal/IO_input_star4ve_export.f90"
+#include "Cocal/read_bht_parameter.f90"
+#include "Cocal/calc_bht_excision_radius.f90"
+#include "Cocal/IO_input_matter_BHT_export.f90"
 
 #include "cctk.h"
 #include "cctk_Arguments.h"
@@ -86,12 +74,12 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
   
 
   integer :: dir_path_len,coc2cac_,coc2cac_readformatlen !, cocout_dir_len
-  integer :: i, j, k, nx, ny, nz, l, ns
+  integer :: i, j, k, nx, ny, nz
 
   logical :: bool_hydro, bool_lapse, bool_shift, bool_Bvec
   
   real(8) :: xcac, ycac, zcac
-  real(8) :: xcoc, ycoc, zcoc, rcoc, expnr, expnv
+  real(8) :: xcoc, ycoc, zcoc, rcoc
   real(8) :: emdca,  omefca, psica,  alphca, psi4ca, psif4ca
   real(8) :: bvxdca, bvydca, bvzdca, bvxuca, bvyuca, bvzuca
   real(8) :: hxxdca, hxydca, hxzdca, hyydca, hyzdca, hzzdca
@@ -116,25 +104,15 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
   real(8), pointer :: hxxu(:,:,:) , hxyu(:,:,:) , hxzu(:,:,:) , hyyu(:,:,:) , hyzu(:,:,:), hzzu(:,:,:)
   real(8), pointer :: kxxa(:,:,:)  , kxya(:,:,:)  , kxza(:,:,:)  , kyya(:,:,:)  , kyza(:,:,:) , kzza(:,:,:)
 
-  real(8), pointer :: alphN(:,:,:,:), betaxdN(:,:,:,:), betaydN(:,:,:,:), betazdN(:,:,:,:) ! New stuff
-  real(8), pointer :: gxxN(:,:,:,:), gxyN(:,:,:,:), gxzN(:,:,:,:), gyyN(:,:,:,:), gyzN(:,:,:,:), gzzN(:,:,:,:)
-  real(8), pointer :: kxxN(:,:,:,:), kxyN(:,:,:,:), kxzN(:,:,:,:), kyyN(:,:,:,:), kyzN(:,:,:,:), kzzN(:,:,:,:)
-  real(8), pointer :: rhoN(:,:,:,:), pressN(:,:,:,:), epsN(:,:,:,:)
-  real(8), pointer :: veluxN(:,:,:,:), veluyN(:,:,:,:), veluzN(:,:,:,:), BvecuxN(:,:,:,:), BvecuyN(:,:,:,:), BvecuzN(:,:,:,:)
-
   real(8), pointer ::  va(:,:,:)  , vaxd(:,:,:) , vayd(:,:,:) , vazd(:,:,:)                           ! (phi,A)
   real(8), pointer :: fxd(:,:,:)  ,  fyd(:,:,:) ,  fzd(:,:,:) , fxyd(:,:,:) , fxzd(:,:,:), fyzd(:,:,:) ! Faraday tensor
-  call CCTK_INFO("Cocal matrices and points declared")
+  if (coc2cac_verbose == 1) then
+     call CCTK_INFO("Cocal matrices and points declared")
+  end if
 !
   gxx1=0.0d0; gxy1=0.0d0; gxz1=0.0d0; gyy1=0.0d0; gyz1=0.0d0; gzz1=0.0d0
   kxx1=0.0d0; kxy1=0.0d0; kxz1=0.0d0; kyy1=0.0d0; kyz1=0.0d0; kzz1=0.0d0
   kxxca=0.0d0; kxyca=0.0d0; kxzca=0.0d0; kyyca=0.0d0; kyzca=0.0d0; kzzca=0.0d0
-
-!   alphN = 0.0d0; betaxdN = 0.0d0; betaydN = 0.0d0; betazdN = 0.0d0
-!   gxxN = 0.0d0; gxyN = 0.0d0; gxzN = 0.0d0; gyyN = 0.0d0; gyzN = 0.0d0; gzzN = 0.0d0
-!   kxxN = 0.0d0; kxyN = 0.0d0; kxzN = 0.0d0; kyyN = 0.0d0; kyzN = 0.0d0; kzzN = 0.0d0
-!   rhoN = 0.0d0; pressN = 0.0d0; epsN = 0.0d0
-!   veluxN = 0.0d0; veluyN = 0.0d0; veluzN = 0.0d0; BvecuxN = 0.0d0; BvecuyN = 0.0d0; BvecuzN = 0.0d0
 
   vaca=0.0d0;  vaxdca=0.0d0;  vaydca=0.0d0;  vazdca=0.0d0;                              ! (phi,A)
   fxdca=0.0d0; fydca=0.0d0; fzdca=0.0d0; fxydca=0.0d0; fxzdca=0.0d0; fyzdca=0.0d0;     ! Faraday Tensor
@@ -142,12 +120,10 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
   va1=0.0d0;  vaxd1=0.0d0; vayd1=0.0d0; vazd1=0.0d0;                                      !(phi,A) (Aphi, Avec[3]) & (Bvec[3])
   utfca=0.0d0;  uxfca=0.0d0;  uyfca=0.0d0;  uzfca=0.0d0;                                  ! Fluid 4 vel (vel[3])
 
-  expnr=0.0d0; expnv=0.0d0
-
   nx = cctk_lsh(1)
   ny = cctk_lsh(2)
   nz = cctk_lsh(3)
-  ns = coc2cac_Nstars
+
 
   if (CCTK_EQUALS(initial_hydro, "Cocal")) then
     bool_hydro = .true.
@@ -170,51 +146,24 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
      bool_Bvec = .false.
   end if
 
-  if (ns > 1) then 
-    call CCTK_INFO("Beginning multiple star reader... ")
-    allocate(alphN(1:nx,1:ny,1:nz,1:ns))
-    allocate(betaxdN(1:nx,1:ny,1:nz,1:ns))
-    allocate(betaydN(1:nx,1:ny,1:nz,1:ns))
-    allocate(betazdN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gxxN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gxyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gxzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gyyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gyzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(gzzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kxxN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kxyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kxzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kyyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kyzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(kzzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(rhoN(1:nx,1:ny,1:nz,1:ns))
-    allocate(pressN(1:nx,1:ny,1:nz,1:ns))
-    allocate(epsN(1:nx,1:ny,1:nz,1:ns))
-    allocate(veluxN(1:nx,1:ny,1:nz,1:ns))
-    allocate(veluyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(veluzN(1:nx,1:ny,1:nz,1:ns))
-    allocate(BvecuxN(1:nx,1:ny,1:nz,1:ns))
-    allocate(BvecuyN(1:nx,1:ny,1:nz,1:ns))
-    allocate(BvecuzN(1:nx,1:ny,1:nz,1:ns))
-  end if
-  call CCTK_INFO("Beginning loop over all stars:")
-  do l = 1, ns
-      call CCTK_FortranString(dir_path_len,coc2cac_dir_path_ID,dir_path)  !For reading initial data
+  call CCTK_FortranString(dir_path_len,coc2cac_dir_path_ID,dir_path)  !For reading initial data
 
       !call CCTK_FortranString(cocout_dir_len,out_dir,cocout_dir) !For copy to output directory
 
-      call CCTK_INFO("Beginning cocal_rns_thorn")
-      
-      !write(outstr,'(5A)') coc2cac_rnstype
-      call CCTK_INFO("Execuiting Reader: "); call CCTK_PrintString(coc2cac_rnstype);
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Beginning cocal_rns_thorn")
+         !write(outstr,'(5A)') coc2cac_rnstype
+         call CCTK_INFO("Execuiting Reader: ")
+         call CCTK_PrintString(coc2cac_rnstype)
+      end if
 
       call CCTK_FortranString(coc2cac_readformatlen,coc2cac_readformat,coc2cac_readformatf)
 
-
-      call CCTK_INFO("Reading format: " // coc2cac_readformatf)
-      ! -- Read parameters
-      call CCTK_INFO("Cocal: Reading parameters...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Reading format: " // coc2cac_readformatf)
+         ! -- Read parameters
+         call CCTK_INFO("Cocal: Reading parameters...")
+      end if
       
 
       ! -- Read parameters
@@ -226,7 +175,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
          call grid_r_bht('eBH') ! Dfferent naming
          rexc = rg(0)
          write(outstr,'(E10.4)') rexc
-         call CCTK_INFO("Excision at r="//outstr)
+         if (coc2cac_verbose == 1) then
+            call CCTK_INFO("Excision at r="//outstr)
+         end if
       else
          call grid_r
       end if
@@ -238,10 +189,14 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
       call grid_extended
 
       ! -- Allocate arrays
-      call CCTK_INFO("Cocal: Allocating local arrays...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Cocal: Allocating local arrays...")
+      end if
 
       write(outstr,'(6i5)') nrg, ntg, npg, nrf, ntf, npf
-      call CCTK_INFO("Cocal Grav grid, Fluid Grid Sizes: "//outstr)
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Cocal Grav grid, Fluid Grid Sizes: "//outstr)
+      end if
       !
       !    write(6,'(6i5)') nrg, ntg, npg, nrf, ntf, npf
       !  rr3 = 0.7d0*(rgout - rgmid)
@@ -259,7 +214,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
       allocate (bvyuf(0:nrf,0:ntf,0:npf))
       allocate (bvzuf(0:nrf,0:ntf,0:npf))
       allocate (   rs(0:ntf,0:npf))
-      call CCTK_INFO("Fluid Grid Allocated...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Fluid Grid Allocated...")
+      end if
       allocate (  psi(0:nrg,0:ntg,0:npg))
       allocate ( alph(0:nrg,0:ntg,0:npg))
       allocate ( bvxd(0:nrg,0:ntg,0:npg))
@@ -286,7 +243,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
       allocate (  kyya(0:nrg,0:ntg,0:npg))
       allocate (  kyza(0:nrg,0:ntg,0:npg))
       allocate (  kzza(0:nrg,0:ntg,0:npg))
-      call CCTK_INFO("Gravitational Grid Allocated...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Gravitational Grid Allocated...")
+      end if
 
       if (CCTK_EQUALS(coc2cac_rnstype,"MRNS_WL")) then
          allocate (  utf(0:nrf,0:ntf,0:npf)) ! fluid 4vel
@@ -310,7 +269,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
             fxd=0.0d0;   fyd=0.0d0;   fzd=0.0d0;    fxyd=0.0d0;   fxzd=0.0d0;  fyzd=0.0d0;
          end if
       end if
-      call CCTK_INFO("Done Allocating...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Done Allocating...")
+      end if
       emd=0.0d0;  rs  =0.0d0;  omef=0.0d0
 
       
@@ -321,7 +282,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
       kxxa=0.0d0;  kxya =0.0d0;  kxza =0.0d0;   kyya=0.0d0;   kyza=0.0d0;   kzza=0.0d0
       hxxd=0.0d0; hxyd=0.0d0;  hxzd=0.0d0;  hyyd=0.0d0;  hyzd=0.0d0;  hzzd=0.0d0;
       hxxu=0.0d0; hxyu=0.0d0;  hxzu=0.0d0;  hyyu=0.0d0;  hyzu=0.0d0;  hzzu=0.0d0;
-      call CCTK_INFO("Done initializing Varriables...")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Done initializing Varriables...")
+      end if
 
       call IO_input_CF_grav_export(trim(dir_path)//"/rnsgra_3D.las",coc2cac_readformatf,psi,alph,bvxd,bvyd,bvzd)
 
@@ -368,13 +331,19 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
       !     &    axx, axy, axz, ayy, ayz, azz)
       
 
-      write(6,'(2e20.12)') emd(0,0,0), omef(0,0,0)
-      write(6,'(3e20.12)') ome, ber, radi
+      if (coc2cac_verbose == 1) then
+         write(outstr,'(a,1x,1p,2e20.12)') "emd(0,0,0), omef(0,0,0):", emd(0,0,0), omef(0,0,0)
+         call CCTK_INFO(trim(outstr))
+         write(outstr,'(a,1x,1p,3e20.12)') "ome, ber, radi:", ome, ber, radi
+         call CCTK_INFO(trim(outstr))
+      end if
       
       !
 
 
-      call CCTK_INFO("Cocal: Looping over local cartesian grid:")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Cocal: Looping over local cartesian grid:")
+      end if
 
       
       
@@ -382,19 +351,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
          do k = 1, nz
             do j = 1, ny
                do i = 1, nx
-               if (l == 1) then
-                  xcac = x(i,j,k) - coc2cac_cen_x1
-                  ycac = y(i,j,k) - coc2cac_cen_y1
-                  zcac = z(i,j,k) - coc2cac_cen_z1
-               else if (l == 2) then
-                  xcac = x(i,j,k) - coc2cac_cen_x2
-                  ycac = y(i,j,k) - coc2cac_cen_y2
-                  zcac = z(i,j,k) - coc2cac_cen_z2
-               else if (l == 3) then
-                  xcac = x(i,j,k) - coc2cac_cen_x3
-                  ycac = y(i,j,k) - coc2cac_cen_y3
-                  zcac = z(i,j,k) - coc2cac_cen_z3
-               end if
+               xcac = x(i,j,k)
+               ycac = y(i,j,k)
+               zcac = z(i,j,k)
                !vcordx in carpetx for cell vertex
                !ccordx in carpetx for cell center
          !        write(6,*)' i, j, k, xcac, ycac, zcac', i, j, k, xcac, ycac, zcac
@@ -535,33 +494,32 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
                call peos_q2hprho(emdca, hca, preca, rhoca, eneca)
                !
 
-               if (ns ==1) then
-                  if (bool_Bvec) then
-                     if (CCTK_EQUALS(coc2cac_rnstype, "MRNS_WL")) then
-                        if (coc2cac_readpot == 1) then
-                           Aphi(i,j,k)   = vaca
-                           Avec(i,j,k,1) = vaxdca
-                           Avec(i,j,k,2) = vaydca
-                           Avec(i,j,k,3) = vazdca
-                        else if (coc2cac_readpot == 0) then
-                           fxd1  = fxdca/radi
-                           fyd1  = fydca/radi
-                           fzd1  = fzdca/radi
-                           fxyd1 = fxydca/radi
-                           fxzd1 = fxzdca/radi
-                           fyzd1 = fyzdca/radi
-                           
-                           Bvec(i,j,k,1) = fxyd1 ! Probably not right
-                           Bvec(i,j,k,2) = fxzd1
-                           Bvec(i,j,k,3) = fyzd1
-                           
-                        end if
-                     else 
-                        Bvec(i,j,k,1) = 0.0d0
-                        Bvec(i,j,k,2) = 0.0d0
-                        Bvec(i,j,k,3) = 0.0d0
-                     end if 
-                  end if
+               if (bool_Bvec) then
+                  if (CCTK_EQUALS(coc2cac_rnstype, "MRNS_WL")) then
+                     if (coc2cac_readpot == 1) then
+                        Aphi(i,j,k)   = vaca
+                        Avec(i,j,k,1) = vaxdca
+                        Avec(i,j,k,2) = vaydca
+                        Avec(i,j,k,3) = vazdca
+                     else if (coc2cac_readpot == 0) then
+                        fxd1  = fxdca/radi
+                        fyd1  = fydca/radi
+                        fzd1  = fzdca/radi
+                        fxyd1 = fxydca/radi
+                        fxzd1 = fxzdca/radi
+                        fyzd1 = fyzdca/radi
+                        
+                        Bvec(i,j,k,1) = fxyd1 ! Probably not right
+                        Bvec(i,j,k,2) = fxzd1
+                        Bvec(i,j,k,3) = fyzd1
+                        
+                     end if
+                  else 
+                     Bvec(i,j,k,1) = 0.0d0
+                     Bvec(i,j,k,2) = 0.0d0
+                     Bvec(i,j,k,3) = 0.0d0
+                  end if 
+               end if
             
                     
 
@@ -619,58 +577,19 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
                   kyy(i,j,k) = kyy1
                   kyz(i,j,k) = kyz1
                   kzz(i,j,k) = kzz1
-               else if (ns>1) then
-                                       !ETK variables set here
-                  alphn(i,j,k,l) = alphca
-                  betaxdN(i,j,k,l) = bvxdca
-                  betaydN(i,j,k,l) = bvydca
-                  betazdN(i,j,k,l) = bvzdca
-
-                  rhoN(i,j,k,l) = rhoca
-                  pressN(i,j,k,l) = preca
-                  epsN(i,j,k,l) = eneca/rhoca - 1.0d0
-                  veluxN(i,j,k,l) = vxu
-                  veluyN(i,j,k,l) = vyu
-                  veluzN(i,j,k,l) = vzu
-
-                  if (CCTK_EQUALS(coc2cac_rnstype, "MRNS_WL")) then
-
-                     BvecuxN(i,j,k,l) = fxyd1 ! Probably not right
-                     BvecuyN(i,j,k,l) = fxzd1
-                     BvecuzN(i,j,k,l) = fyzd1
-                  end if
-
-
-                  gxxN(i,j,k,l) = gxx1
-                  gxyN(i,j,k,l) = gxy1
-                  gxzN(i,j,k,l) = gxz1
-                  gyyN(i,j,k,l) = gyy1
-                  gyzN(i,j,k,l) = gyz1
-                  gzzN(i,j,k,l) = gzz1
-                  if (gxx1 == gxx1) then
-                     continue
-                  else 
-                     call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-                  end if 
-                  
-                  kxxN(i,j,k,l) = kxx1
-                  kxyN(i,j,k,l) = kxy1
-                  kxzN(i,j,k,l) = kxz1
-                  kyyN(i,j,k,l) = kyy1
-                  kyzN(i,j,k,l) = kyz1
-                  kzzN(i,j,k,l) = kzz1
-
-               end if
-               
                end do
             end do
          end do
          
             
-      call CCTK_INFO("3D Loop 100% Done")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("3D Loop 100% Done")
+      end if
      
 
-      call CCTK_INFO("Deallocating....")
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Deallocating....")
+      end if
       deallocate(  emd);  deallocate( omef);  deallocate( psif);  deallocate(alphf);    
       deallocate(bvxuf);  deallocate(bvyuf);  deallocate(bvzuf);  deallocate(   rs);    
       deallocate(  psi);  deallocate( alph);  deallocate( bvxd);  deallocate( bvyd);  
@@ -693,90 +612,9 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
          end if
       end if
       !
-      call CCTK_INFO("Cocal: Done Deallocating...")
-   end do
-   if (ns > 1) then
-      call CCTK_INFO("Superimposing multiple solutions onto a single one, weighting by lapse function...")
-      if (bool_lapse) then
-         alp = SUM(alphN,4) - 1.0d0*(ns - 1.0d0) ! Whoops, forgot to subtract ns-1
+      if (coc2cac_verbose == 1) then
+         call CCTK_INFO("Cocal: Done Deallocating...")
       end if
-      if (bool_shift) then
-         betax = SUM(betaxdN,4)
-         betay = SUM(betaydN,4)
-         betaz = SUM(betazdN,4)
-      end if
-
-      if (bool_Bvec) then
-         if (CCTK_EQUALS(coc2cac_rnstype, "MRNS_WL")) then
-            Bvec(:,:,:,1) = SUM(BvecuxN, 4) ! Probably not right
-            Bvec(:,:,:,2) = SUM(BvecuyN, 4)
-            Bvec(:,:,:,3) = SUM(BvecuzN, 4)
-         else 
-            Bvec(:,:,:,1) = 0.0d0
-            Bvec(:,:,:,2) = 0.0d0
-            Bvec(:,:,:,3) = 0.0d0
-         end if
-      end if
-
-      if (bool_hydro) then
-         !rho = SUM(rhoN, 4) ! Regular superposition
-         rho = (alp**expnr)*SUM( (alphN**(-expnr))*rhoN, 4) ! Weighted superposition
-         press = SUM(pressN, 4)
-         eps = SUM(epsN, 4)
-         !vel(:,:,:,1) = SUM(veluxN, 4) !Regular superposition
-         !vel(:,:,:,2) = SUM(veluyN, 4) !Regular superposition
-         !vel(:,:,:,3) = SUM(veluzN, 4) !Regular superposition
-         vel(:,:,:,1) = (alp**(-expnv))*SUM( (alphN**expnv)*veluxN, 4) !Weighted superposition
-         vel(:,:,:,2) = (alp**(-expnv))*SUM( (alphN**expnv)*veluyN, 4) !Weighted superposition
-         vel(:,:,:,3) = (alp**(-expnv))*SUM( (alphN**expnv)*veluzN, 4) !Weighted superposition
-      end if
-
-
-      gxx = SUM(gxxN, 4) - 1.0d0*(ns - 1.0d0)
-      gxy = SUM(gxyN, 4)
-      gxz = SUM(gxzN, 4)
-      gyy = SUM(gyyN, 4) - 1.0d0*(ns - 1.0d0)
-      gyz = SUM(gyzN, 4)
-      gzz = SUM(gzzN, 4) - 1.0d0*(ns - 1.0d0)
-      if (gxx1 == gxx1) then
-         continue
-      else 
-         call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-      end if 
-      
-      kxx = SUM(kxxN,4)
-      kxy = SUM(kxyN,4)
-      kxz = SUM(kxzN,4)
-      kyy = SUM(kyyN,4)
-      kyz = SUM(kyzN,4)
-      kzz = SUM(kzzN,4)
-
-      deallocate(alphN)
-      deallocate(betaxdN)
-      deallocate(betaydN)
-      deallocate(betazdN)
-      deallocate(gxxN)
-      deallocate(gxyN)
-      deallocate(gxzN)
-      deallocate(gyyN)
-      deallocate(gyzN)
-      deallocate(gzzN)
-      deallocate(kxxN)
-      deallocate(kxyN)
-      deallocate(kxzN)
-      deallocate(kyyN)
-      deallocate(kyzN)
-      deallocate(kzzN)
-      deallocate(rhoN)
-      deallocate(pressN)
-      deallocate(epsN)
-      deallocate(veluxN)
-      deallocate(veluyN)
-      deallocate(veluzN)
-      deallocate(BvecuxN)
-      deallocate(BvecuyN)
-      deallocate(BvecuzN)
-   end if
 
 
 ! if (coc2cac_copyID == 1) then
@@ -784,5 +622,7 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
 !   call execute_command_line("cp -r " // trim(dir_path) // " " // trim(cocout_dir) // "/")
 ! end if
 
-call CCTK_INFO("cocal_rns_thorn: finishing...")
+if (coc2cac_verbose == 1) then
+   call CCTK_INFO("cocal_rns_thorn: finishing...")
+end if
 END subroutine coc2cac_rns
