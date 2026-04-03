@@ -1,8 +1,8 @@
-# Configuration definitions for thorn Cocal
+# Configuration definitions for thorn COCAL_ID
 
 REQUIRES Fortran
 
-PROVIDES Cocal
+PROVIDES COCAL_ID
 {
   
 }

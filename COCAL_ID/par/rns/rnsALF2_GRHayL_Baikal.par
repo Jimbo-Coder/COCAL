@@ -22,7 +22,7 @@ ActiveThorns = "
   CCE_Export
   CoordBase
   CoordGauge
-  cocal_ID
+  COCAL_ID
   CycleClock
   EOS_Omni
   HydroBase
@@ -256,15 +256,15 @@ InitBase::initial_data_setup_method = "init_some_levels"
 #WL: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12
 #CF: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28
 #MWL: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6
-#cocal_ID_thorn::coc2cac_dir_path_ID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12"
-cocal_ID_thorn::coc2cac_dir_path_ID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28"
-cocal_ID_thorn::coc2cac_readpot = "False"
+#cocal_ID_thorn::PathToID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12"
+COCAL_ID::coc2cac_dir_path_ID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28"
+COCAL_ID::coc2cac_readpot = "False"
 
 #Type of ID
 # [RNS_WL, RNS_CF, MRNS_WL]
-cocal_ID_thorn::coc2cac_rnstype = "RNS_CF"
+COCAL_ID::coc2cac_rnstype = "RNS_CF"
 
-cocal_ID_thorn::coc2cac_readformat = "20.12"
+COCAL_ID::coc2cac_readformat = "20.12"
 
 
 # Use TOV as initial data

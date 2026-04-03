@@ -1,6 +1,5 @@
 # Main make.code.defn file for thorn COCAL_ID
 
 # Source files in this directory
-SRCS = coc2cac_ID_shared.F90 \
-       coc2cac_ID_master_RNS.F90 \
-       coc2cac_ID_master_BNS.F90
+SRCS = COCAL_ID_master.F90
+

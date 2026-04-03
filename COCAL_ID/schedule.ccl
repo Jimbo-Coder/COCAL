@@ -2,7 +2,7 @@
 
 if (CCTK_Equals(initial_data, "CocalRNS"))
 {
-   SCHEDULE coc2cac_rns IN HydroBase_Initial
+   SCHEDULE cocal_ID_rns IN HydroBase_Initial
    {
       LANG: FORTRAN
    }"Read Cocal RNS Initial Data into Cactus"
@@ -10,7 +10,7 @@ if (CCTK_Equals(initial_data, "CocalRNS"))
 
 if (CCTK_Equals(initial_data, "CocalBNS"))
 {
-   SCHEDULE coc2cac_bns IN HydroBase_Initial
+   SCHEDULE cocal_ID_bns IN HydroBase_Initial
    {
       LANG: FORTRAN
    }"Read Cocal BNS Initial Data into Cactus"

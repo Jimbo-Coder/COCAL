@@ -1,29 +1,14 @@
-!_____________________________________________________________________________
-!
-!    CACTUS READER OF COCAL ROTATING STAR IN WAVELESS FORMALISM 
-!_____________________________________________________________________________
-!
-
 #define module_use use
 
+! Shared modules
 #include "Cocal/phys_constant.f90"
 #include "Cocal/def_matter_parameter.f90"
 #include "Cocal/def_quantities.f90"
-#include "Cocal/def_bh_parameter.f90"
-
-#include "Cocal/def_bht_parameter.f90" 
-
 #include "Cocal/def_peos_parameter.f90"
-
-#include "Cocal/def_binary_parameter.f90" 
-#include "Cocal/def_matter_parameter_mpt.f90"
-#include "Cocal/def_binary_parameter_mpt.f90"
-#include "Cocal/def_peos_parameter_mpt.f90"
 #include "Cocal/make_char1_array_2d.f90"
 #include "Cocal/make_char2_array_2d.f90"
 #include "Cocal/make_int_array_2d.f90"
 #include "Cocal/make_array_1d.f90"
-
 #include "Cocal/make_array_2d.f90"
 #include "Cocal/make_array_3d.f90"
 #include "Cocal/grid_parameter.f90"
@@ -34,47 +19,70 @@
 #include "Cocal/coordinate_grav_extended.f90"
 #include "Cocal/trigonometry_grav_theta.f90"
 #include "Cocal/trigonometry_grav_phi.f90"
-
-#include "Cocal/grid_parameter_binary_excision.f90"
-
 #include "Cocal/interface_IO_input_CF_grav_export.f90"
-#include "Cocal/interface_IO_input_WL_grav_export_hij.f90"
 #include "Cocal/interface_IO_input_grav_export_Kij.f90"
+#include "Cocal/interface_interpo_gr2fl_metric_CF_export.f90"
+
+! Shared subroutines
+#include "Cocal/IO_input_CF_grav_export.f90"
+#include "Cocal/IO_input_grav_export_Kij.f90"
+#include "Cocal/interpo_gr2fl_metric_CF_export.f90"
+#include "Cocal/interpo_gr2cgr_4th.f90"
+#include "Cocal/interpo_fl2cgr_4th_export.f90"
+#include "Cocal/peos_initialize.f90"
+#include "Cocal/peos_q2hprho.f90"
+#include "Cocal/peos_lookup.f90"
+
+! RNS-specific modules
+#include "Cocal/def_bh_parameter.f90"
+#include "Cocal/def_bht_parameter.f90"
+#include "Cocal/interface_IO_input_WL_grav_export_hij.f90"
 #include "Cocal/interface_IO_input_CF_star_export.f90"
 #include "Cocal/interface_invhij_WL_export.f90"
 #include "Cocal/interface_index_vec_down2up_export.f90"
-#include "Cocal/interface_interpo_gr2fl_metric_CF_export.f90"
+#include "Cocal/interface_IO_input_matter_BHT_export.f90"
 #include "Cocal/interface_IO_input_grav_export_Ai.f90"
 #include "Cocal/interface_IO_input_grav_export_Faraday.f90"
 #include "Cocal/interface_IO_input_star4ve_export.f90"
-#include "Cocal/interface_interpo_gr2fl_export.f90"
-#include "Cocal/interface_interpo_lag4th_2Dsurf.f90"
 
+! RNS-specific subroutines
+#include "Cocal/IO_input_WL_grav_export_hij.f90"
+#include "Cocal/IO_input_CF_star_export.f90"
+#include "Cocal/invhij_WL_export.f90"
+#include "Cocal/index_vec_down2up_export.f90"
+#include "Cocal/IO_input_grav_export_Ai.f90"
+#include "Cocal/IO_input_grav_export_Faraday.f90"
+#include "Cocal/IO_input_star4ve_export.f90"
+#include "Cocal/read_bht_parameter.f90"
+#include "Cocal/calc_bht_excision_radius.f90"
+#include "Cocal/IO_input_matter_BHT_export.f90"
+
+! BNS-specific modules
+#include "Cocal/def_binary_parameter.f90"
+#include "Cocal/def_matter_parameter_mpt.f90"
+#include "Cocal/def_binary_parameter_mpt.f90"
+#include "Cocal/def_peos_parameter_mpt.f90"
+#include "Cocal/grid_parameter_binary_excision.f90"
+#include "Cocal/interface_interpo_lag4th_2Dsurf.f90"
 #include "Cocal/interface_IO_input_CF_surf_export.f90"
 #include "Cocal/interface_IO_input_CF_flco_export.f90"
 #include "Cocal/interface_IO_input_CF_flir_export.f90"
 #include "Cocal/interface_IO_input_CF_flsp_export.f90"
 #include "Cocal/interface_IO_input_gradvep_export.f90"
+#include "Cocal/grid_parameter_mpt.f90"
+#include "Cocal/grid_parameter_binary_excision_mpt.f90"
+#include "Cocal/trigonometry_grav_phi_mpt.f90"
+#include "Cocal/trigonometry_grav_theta_mpt.f90"
+#include "Cocal/coordinate_grav_r_mpt.f90"
+#include "Cocal/coordinate_grav_phi_mpt.f90"
+#include "Cocal/coordinate_grav_theta_mpt.f90"
+#include "Cocal/coordinate_grav_extended_mpt.f90"
 
-#include "Cocal/IO_input_CF_grav_export.f90"
-#include "Cocal/IO_input_WL_grav_export_hij.f90"
-#include "Cocal/IO_input_grav_export_Kij.f90"
-#include "Cocal/IO_input_CF_star_export.f90"
-#include "Cocal/invhij_WL_export.f90"
-#include "Cocal/index_vec_down2up_export.f90"
-#include "Cocal/interpo_gr2fl_metric_CF_export.f90"
-#include "Cocal/IO_input_grav_export_Ai.f90"
-#include "Cocal/IO_input_grav_export_Faraday.f90"
-#include "Cocal/IO_input_star4ve_export.f90"
-#include "Cocal/interpo_gr2fl_export.f90"
-#include "Cocal/interpo_gr2cgr_4th.f90"
-#include "Cocal/interpo_fl2cgr_4th_export.f90"
-#include "Cocal/interpo_lag4th_2Dsurf.f90"
+! BNS-specific functions
 #include "Cocal/lagint_4th.f90"
-#include "Cocal/peos_initialize.f90"
-#include "Cocal/peos_q2hprho.f90"
-#include "Cocal/peos_lookup.f90"
 
+! BNS-specific subroutines
+#include "Cocal/interpo_lag4th_2Dsurf.f90"
 #include "Cocal/copy_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_2dto3d_mpt.f90"
@@ -85,20 +93,12 @@
 #include "Cocal/copy_array_3dto2d_mpt.f90"
 #include "Cocal/copy_array_static_0dto1d_mpt.f90"
 #include "Cocal/copy_array_static_1dto0d_mpt.f90"
-#include "Cocal/grid_parameter_mpt.f90"
-#include "Cocal/grid_parameter_binary_excision_mpt.f90"
 #include "Cocal/allocate_grid_parameter_mpt.f90"
 #include "Cocal/allocate_grid_parameter_binary_excision_mpt.f90"
 #include "Cocal/allocate_def_matter_parameter_mpt.f90"
-#include "Cocal/trigonometry_grav_phi_mpt.f90"
-#include "Cocal/trigonometry_grav_theta_mpt.f90"
-#include "Cocal/coordinate_grav_r_mpt.f90"
-#include "Cocal/coordinate_grav_phi_mpt.f90"
-#include "Cocal/coordinate_grav_theta_mpt.f90"
 #include "Cocal/read_parameter_mpt.f90"
 #include "Cocal/read_parameter_binary_excision_mpt.f90"
 #include "Cocal/read_surf_parameter_mpt.f90"
-#include "Cocal/coordinate_grav_extended_mpt.f90"
 #include "Cocal/copy_grid_parameter_to_mpt.f90"
 #include "Cocal/copy_grid_parameter_from_mpt.f90"
 #include "Cocal/copy_grid_parameter_binary_excision_from_mpt.f90"
@@ -123,42 +123,22 @@
 #include "Cocal/IO_input_CF_flco_export.f90"
 #include "Cocal/IO_input_CF_flir_export.f90"
 #include "Cocal/IO_input_CF_flsp_export.f90"
-#include "Cocal/peos_initialize_mpt.f90" 
-#include "Cocal/coordinate_patch_kit_grav_grid_coc2cac_mpt.f90" 
-#include "Cocal/set_allocate_size_mpt.f90" 
+#include "Cocal/peos_initialize_mpt.f90"
+#include "Cocal/coordinate_patch_kit_grav_grid_coc2cac_mpt.f90"
+#include "Cocal/set_allocate_size_mpt.f90"
 #include "Cocal/IO_input_gradvep_export.f90"
 #include "Cocal/allocate_trigonometry_grav_phi_mpt.f90"
-
-#include "Cocal/interface_IO_input_matter_BHT_export.f90"
-#include "Cocal/read_bht_parameter.f90" 
-#include "Cocal/calc_bht_excision_radius.f90"
-#include "Cocal/IO_input_matter_BHT_export.f90"
-
 
 #include "cctk.h"
 #include "cctk_Arguments.h"
 #include "cctk_Functions.h"
 #include "cctk_Parameters.h"
-!
-!________________________
-subroutine coc2cac_main(CCTK_ARGUMENTS)
-  DECLARE_CCTK_ARGUMENTS
-  DECLARE_CCTK_FUNCTIONS
-  DECLARE_CCTK_PARAMETERS
-  if ((CCTK_EQUALS(initial_data, "CocalRNS")) & 
-      & .or. ((CCTK_EQUALS(initial_data,"Exact")) .and. (CCTK_EQUALS(coc2cac_rnstype,"BHT_WL")))) then
-    call CCTK_INFO("Executing Main Cocal RNS Reader")
-    call coc2cac_rns(CCTK_PASS_FTOF)
-  else if (CCTK_EQUALS(initial_data, "CocalBNS")) then
-    call CCTK_INFO("Executing Main Cocal BNS Reader")
-    call coc2cac_bns(CCTK_PASS_FTOF)
-  end if
-end subroutine coc2cac_main
+
 
 
 
 !RNS Routine
-subroutine coc2cac_rns(CCTK_ARGUMENTS)
+subroutine cocal_ID_rns(CCTK_ARGUMENTS)
   use phys_constant
   use grid_parameter, eps_cocal => eps
   use interface_modules_cartesian
@@ -189,7 +169,7 @@ subroutine coc2cac_rns(CCTK_ARGUMENTS)
   DECLARE_CCTK_ARGUMENTS
   DECLARE_CCTK_FUNCTIONS
   DECLARE_CCTK_PARAMETERS
-  !call CCTK_INFO("Imported modules and CCTK stuff")
+  if ()
   integer :: iAB 
   !character(30) :: char1
   character*400 :: dir_path, outstr, coc2cac_readformatf !,cocout_dir
@@ -904,7 +884,7 @@ END subroutine coc2cac_rns
  !
  !      MASTER CF BNS COCAL ID READER to CACTUS
  !______________________________________________
-SUBROUTINE coc2cac_bns(CCTK_ARGUMENTS)
+SUBROUTINE cocal_ID_bns(CCTK_ARGUMENTS)
  !
    use grid_parameter_binary_excision
    use phys_constant

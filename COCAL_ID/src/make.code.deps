@@ -1,2 +1,0 @@
-coc2cac_ID_master_RNS.F90.o: coc2cac_ID_shared.F90.o
-coc2cac_ID_master_BNS.F90.o: coc2cac_ID_shared.F90.o

@@ -1,4 +1,4 @@
-# Parameter definitions for thorn Cocal
+# Parameter definitions for thorn COCAL_ID
 # RNS(Rotating Neutron Star) , BNS(Rotating Binary Neutron Star) 
 
 
@@ -43,12 +43,12 @@ EXTENDS keyword initial_Y_e
 
 private:
 
-CCTK_STRING coc2cac_dir_path_ID "Path to Cocal RNS/BNS initial data"
+CCTK_STRING COCAL_ID_PathToID "Path to Cocal RNS/BNS initial data"
 {
   ".+" :: "Pathname"
 } "."
 
-CCTK_KEYWORD coc2cac_rnstype "Type of initial data, currently"
+CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
 {
   "RNS_WL" :: "Waveless"
   "RNS_CF" :: "Conformally Flat"
@@ -56,29 +56,29 @@ CCTK_KEYWORD coc2cac_rnstype "Type of initial data, currently"
   "BHT_WL" :: "Waveless BH with Disk"
 } "RNS_CF"
 
-CCTK_KEYWORD coc2cac_bnstype "Type of initial data, currently"
+CCTK_KEYWORD COCAL_ID_bnstype "Type of initial data, useless"
 {
   "BNS_WL" :: "Waveless BNS"
   "BNS_CF" :: "CF BNS"
   "MBNS_WL" :: "Magnetized Waveless BNS"
 } "BNS_CF"
 
-CCTK_KEYWORD coc2cac_readformat "Format of the input data"
+CCTK_KEYWORD COCAL_ID_readformat "Format of the input data"
 {
   "20.12" :: "20.12"
   "23.15" :: "23.15"
 } "20.12"
 
-CCTK_BOOLEAN coc2cac_readpot "Whether to read the Potential or faraday tensor, True for Potential, False for Fields."
+CCTK_BOOLEAN COCAL_ID_readpot "Whether to read the Potential or faraday tensor, True for Potential, False for Fields."
 {
 } "False"
 
-CCTK_BOOLEAN coc2cac_verbose "Enable verbose COCAL reader logging"
+CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
 {
 } "False"
 
 
-CCTK_REAL coc2cac_ecc_cor_velx "X velocity of the CoM"
+CCTK_REAL COCAL_ID_ecc_cor_velx "X velocity of the CoM"
 {
   *:* :: ""
 } 0.0
