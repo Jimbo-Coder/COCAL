@@ -606,5 +606,4 @@ WVUThorns_Diagnostics/VolumeIntegrals_vacuum
 !TARGET   = $ARR
 !TYPE     = ignore
 !CHECKOUT =
-#COCAL/COCAL_ID
-COCAL_o/cocal_ID_thorn
+COCAL/COCAL_ID

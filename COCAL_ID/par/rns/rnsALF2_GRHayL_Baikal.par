@@ -101,7 +101,7 @@ CartGrid3D::avoid_origin = "no"
 CarpetInterp::check_tree_search = "no"
 CarpetInterp::tree_search       = "yes"
 
-CoordBase::xmax = 16.0 #240.0
+CoordBase::xmax = 24.0 #240.0
 CoordBase::ymax = CoordBase::xmax
 CoordBase::zmax = CoordBase::xmax
 CoordBase::xmin = -CoordBase::xmax
@@ -111,7 +111,7 @@ CoordBase::zmin = -CoordBase::xmax  #-240.0
 # have to be multiples of these. 'dx' is the size of one cell in x-direction.
 # Making this smaller means using higher resolution, because more points will
 # be used to cover the same space.
-CoordBase::dx   =  0.25 # exponent is number of ref levels -1, gives that value at the most refined level.
+CoordBase::dx   =  0.5 # exponent is number of ref levels -1, gives that value at the most refined level.
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
 
@@ -257,7 +257,7 @@ InitBase::initial_data_setup_method = "init_some_levels"
 #CF: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28
 #MWL: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6
 #COCAL_ID::PathToID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12"
-COCAL_ID::COCAL_ID_PathToID = "/home/nickd/cocal_IDs/rns/sol_12"
+COCAL_ID::COCAL_ID_PathToID = "/home/max/COCAL_IDs/rns/sol_12"
 COCAL_ID::COCAL_ID_readpot = "False"
 
 #Type of ID
@@ -309,7 +309,7 @@ ADMBase::shift_timelevels         = 3
 
 #----------------------IllinoisGRMHD configuration----------------------
 # Parameters of thorn Convert_to_HydroBase (implementing Convert_to_HydroBase)
-IllinoisGRMHD::Convert_to_HydroBase_every = 16
+IllinoisGRMHD::Convert_to_HydroBase_every = $out_every
 
 #Spherical surface
 SphericalSurface::nsurfaces = 4
