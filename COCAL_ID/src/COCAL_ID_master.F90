@@ -296,13 +296,13 @@ implicit none
      allocate (  uyf(0:nrf,0:ntf,0:npf)) !
      allocate (  uzf(0:nrf,0:ntf,0:npf)) !
      utf=0.0d0;  uxf=0.0d0;   uyf=0.0d0;   uzf=0.0d0;     !fluid 4 vel init
-     if (COCAL_ID_readpot == 1) then
+     if (COCAL_ID_read_magnetic_potential == 1) then
         allocate (   va(0:nrg,0:ntg,0:npg)) !(phi,A)
         allocate ( vaxd(0:nrg,0:ntg,0:npg))
         allocate ( vayd(0:nrg,0:ntg,0:npg))
         allocate ( vazd(0:nrg,0:ntg,0:npg))
         va=0.0d0;    vaxd=0.0d0;  vayd=0.0d0;   vazd=0.0d0;
-     else if (COCAL_ID_readpot == 0) then
+     else if (COCAL_ID_read_magnetic_potential == 0) then
         allocate (  fxd(0:nrg,0:ntg,0:npg)) !Faraday tensor
         allocate (  fyd(0:nrg,0:ntg,0:npg))
         allocate (  fzd(0:nrg,0:ntg,0:npg))
@@ -338,13 +338,13 @@ implicit none
   else if (CCTK_EQUALS(COCAL_ID_rnstype, "RNS_CF")) then
      continue
   else
-     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid cocal_rns_thorn: COCAL_ID_rnstype")
+     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL_ID_rnstype")
   end if
 
   if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
-     if (COCAL_ID_readpot == 1) then
+     if (COCAL_ID_read_magnetic_potential == 1) then
         call COCAL_ID_IO_input_grav_export_Ai(trim(COCAL_ID_PathToIDf)//"/rnsEMF_3D.las",COCAL_ID_readformatf,va,vaxd,vayd,vazd)
-     else if (COCAL_ID_readpot == 0) then
+     else if (COCAL_ID_read_magnetic_potential == 0) then
         call COCAL_ID_IO_input_grav_export_Faraday(trim(COCAL_ID_PathToIDf)//"/rnsEMF_faraday_3D.las",COCAL_ID_readformatf,fxd,fyd,fzd,fxyd,fxzd,fyzd)
      end if
      call COCAL_ID_IO_input_star4ve_export(trim(COCAL_ID_PathToIDf)//"/rns4ve_3D.las",COCAL_ID_readformatf,utf,uxf,uyf,uzf) ! fluid 4vel
@@ -399,9 +399,9 @@ subroutine COCAL_ID_deallocate_rns(CCTK_ARGUMENTS)
 
   if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
      deallocate(utf, uxf, uyf, uzf)
-     if (COCAL_ID_readpot == 1) then
+     if (COCAL_ID_read_magnetic_potential == 1) then
         deallocate(va, vaxd, vayd, vazd)
-     else if (COCAL_ID_readpot == 0) then
+     else if (COCAL_ID_read_magnetic_potential == 0) then
         deallocate(fxd, fyd, fzd)
         deallocate(fxyd, fxzd, fyzd)
      end if
@@ -512,7 +512,7 @@ implicit none
   integer :: COCAL_ID_PathToIDf_len,COCAL_ID_readformatlen 
   integer :: i, j, k, nx, ny, nz
 
-  logical :: bool_hydro, bool_lapse, bool_shift, bool_Bvec
+  logical :: bool_metric_curv, bool_lapse, bool_shift, bool_hydro, bool_Bvec, bool_Avec_Aphi
   
   real(8) :: xcac, ycac, zcac ! Cactus coordinates
   real(8) :: xcoc, ycoc, zcoc, rcoc ! COCAL coordinates
@@ -547,25 +547,24 @@ implicit none
   ny = cctk_lsh(2)
   nz = cctk_lsh(3)
 
-  if (CCTK_EQUALS(initial_hydro, "Cocal")) then
-    bool_hydro = .true.
-  else
-    bool_hydro = .false.
+  bool_metric_curv = CCTK_EQUALS(initial_data, "CocalRNS")
+  bool_lapse = CCTK_EQUALS(initial_lapse, "Cocal")
+  bool_shift = CCTK_EQUALS(initial_shift, "Cocal")
+
+  bool_hydro = CCTK_EQUALS(initial_hydro, "Cocal")
+  bool_Bvec = CCTK_EQUALS(initial_Bvec, "Cocal")
+  bool_Avec_Aphi = CCTK_EQUALS(initial_Avec, "Cocal") .and. CCTK_EQUALS(initial_Aphi, "Cocal")
+
+  if (CCTK_EQUALS(initial_Avec, "Cocal") .and. .not. CCTK_EQUALS(initial_Aphi, "Cocal")) then
+     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid initial data configuration: initial_Avec is set to Cocal but initial_Aphi is not.")
+  else if (.not. CCTK_EQUALS(initial_Avec, "Cocal") .and. CCTK_EQUALS(initial_Aphi, "Cocal")) then
+     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid initial data configuration: initial_Aphi is set to Cocal but initial_Avec is not.")
   end if
-  if (CCTK_EQUALS(initial_lapse, "Cocal")) then
-     bool_lapse = .true.
-  else
-     bool_lapse = .false.
+  if (bool_Avec_Aphi .and. COCAL_ID_read_magnetic_potential == 0) then
+     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid initial data configuration: Cocal initial_Avec/Aphi require COCAL_ID_read_magnetic_potential = yes.")
   end if
-  if (CCTK_EQUALS(initial_shift, "Cocal")) then
-     bool_shift = .true.
-  else
-     bool_shift = .false.
-  end if
-  if (CCTK_EQUALS(initial_Bvec, "Cocal")) then
-     bool_Bvec = .true.
-  else
-     bool_Bvec = .false.
+  if (bool_Bvec .and. COCAL_ID_read_magnetic_potential == 1) then
+     call CCTK_WARN(CCTK_WARN_ABORT, "Invalid initial data configuration: Cocal initial_Bvec requires COCAL_ID_read_magnetic_potential = no.")
   end if
 
   if (COCAL_ID_verbose == 1) then
@@ -573,6 +572,7 @@ implicit none
     call CCTK_INFO("Setting Lapse: " // trim(merge("true ", "false", bool_lapse)))
     call CCTK_INFO("Setting Shift: " // trim(merge("true ", "false", bool_shift)))
     call CCTK_INFO("Setting Bvec: "  // trim(merge("true ", "false", bool_Bvec)))
+    call CCTK_INFO("Setting Avec/Aphi: "  // trim(merge("true ", "false", bool_Avec_Aphi)))
   end if
   if (.not. have_read_data) call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID_rns called before COCAL_ID_read_rns_data completed.")
 
@@ -632,12 +632,12 @@ implicit none
               call COCAL_ID_interpo_fl2cgr_4th_export(uxf, uxfca , xcoc, ycoc, zcoc, rs)!
               call COCAL_ID_interpo_fl2cgr_4th_export(uyf, uyfca , xcoc, ycoc, zcoc, rs)!
               call COCAL_ID_interpo_fl2cgr_4th_export(uzf, uzfca , xcoc, ycoc, zcoc, rs)!
-              if (COCAL_ID_readpot == 1) then
+              if (COCAL_ID_read_magnetic_potential == 1) then
                  call COCAL_ID_interpo_gr2cgr_4th(  va,   vaca, xcoc, ycoc, zcoc)!potentials
                  call COCAL_ID_interpo_gr2cgr_4th(vaxd, vaxdca, xcoc, ycoc, zcoc)
                  call COCAL_ID_interpo_gr2cgr_4th(vayd, vaydca, xcoc, ycoc, zcoc)
                  call COCAL_ID_interpo_gr2cgr_4th(vazd, vazdca, xcoc, ycoc, zcoc)
-              else if (COCAL_ID_readpot == 0) then
+              else if (COCAL_ID_read_magnetic_potential == 0) then
                  call COCAL_ID_interpo_gr2cgr_4th(fxd,   fxdca, xcoc, ycoc, zcoc) !Faraday/fields
                  call COCAL_ID_interpo_gr2cgr_4th(fyd,   fydca, xcoc, ycoc, zcoc)
                  call COCAL_ID_interpo_gr2cgr_4th(fzd,   fzdca, xcoc, ycoc, zcoc)
@@ -691,29 +691,23 @@ implicit none
            call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
            !
 
-           if (bool_Bvec) then
-              if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
-                 if (COCAL_ID_readpot == 1) then
+           if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
+              if (COCAL_ID_read_magnetic_potential == 1) then
+                 if (bool_Avec_Aphi) then
                     Aphi(i,j,k)   = vaca
                     Avec(i,j,k,1) = vaxdca
                     Avec(i,j,k,2) = vaydca
                     Avec(i,j,k,3) = vazdca
-                 else if (COCAL_ID_readpot == 0) then
-                    fxd1  = fxdca/radi
-                    fyd1  = fydca/radi
-                    fzd1  = fzdca/radi
-                    fxyd1 = fxydca/radi
-                    fxzd1 = fxzdca/radi
-                    fyzd1 = fyzdca/radi
-
-                    Bvec(i,j,k,1) = fxyd1 ! Probably not right
-                    Bvec(i,j,k,2) = fxzd1
-                    Bvec(i,j,k,3) = fyzd1
                  end if
-              else
-                 Bvec(i,j,k,1) = 0.0d0
-                 Bvec(i,j,k,2) = 0.0d0
-                 Bvec(i,j,k,3) = 0.0d0
+              else if (COCAL_ID_read_magnetic_potential == 0) then
+                 fxyd1 = fxydca/radi
+                 fxzd1 = fxzdca/radi
+                 fyzd1 = fyzdca/radi
+                 if (bool_Bvec) then
+                    Bvec(i,j,k,1) =  fyzd1
+                    Bvec(i,j,k,2) = -fxzd1
+                    Bvec(i,j,k,3) =  fxyd1
+                 end if
               end if
            end if
 
@@ -751,25 +745,26 @@ implicit none
               vel(i,j,k,2) = vyu
               vel(i,j,k,3) = vzu
            end if
+           if (bool_metric_curv) then
+               gxx(i,j,k) = gxx1
+               gxy(i,j,k) = gxy1
+               gxz(i,j,k) = gxz1
+               gyy(i,j,k) = gyy1
+               gyz(i,j,k) = gyz1
+               gzz(i,j,k) = gzz1
+               if (gxx1 == gxx1) then
+                  continue
+               else
+                  call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
+               end if
 
-           gxx(i,j,k) = gxx1
-           gxy(i,j,k) = gxy1
-           gxz(i,j,k) = gxz1
-           gyy(i,j,k) = gyy1
-           gyz(i,j,k) = gyz1
-           gzz(i,j,k) = gzz1
-           if (gxx1 == gxx1) then
-              continue
-           else
-              call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-           end if
-
-           kxx(i,j,k) = kxx1
-           kxy(i,j,k) = kxy1
-           kxz(i,j,k) = kxz1
-           kyy(i,j,k) = kyy1
-           kyz(i,j,k) = kyz1
-           kzz(i,j,k) = kzz1
+               kxx(i,j,k) = kxx1
+               kxy(i,j,k) = kxy1
+               kxz(i,j,k) = kxz1
+               kyy(i,j,k) = kyy1
+               kyz(i,j,k) = kyz1
+               kzz(i,j,k) = kzz1
+            end if
         end do
      end do
   end do
@@ -1235,7 +1230,7 @@ implicit none
    integer :: i, j, k, nx, ny, nz
    integer :: impt_ex, ico, irr, isp
 
-   logical ::  bool_lapse, bool_shift, bool_hydro, bool_Bvec
+   logical ::  bool_metric_curv, bool_lapse, bool_shift, bool_hydro
 
    real(8) :: huta, alphfca2
    real(8) :: vepxfca, vepyfca, vepzfca
@@ -1301,32 +1296,16 @@ implicit none
    ny = cctk_lsh(2)
    nz = cctk_lsh(3)
 
-   if (CCTK_EQUALS(initial_hydro, "Cocal")) then
-      bool_hydro = .true.
-    else
-      bool_hydro = .false.
-    end if
-    if (CCTK_EQUALS(initial_lapse, "Cocal")) then
-       bool_lapse = .true.
-    else
-       bool_lapse = .false.
-    end if
-    if (CCTK_EQUALS(initial_shift, "Cocal")) then
-       bool_shift = .true.
-    else
-       bool_shift = .false.
-    end if
-    if (CCTK_EQUALS(initial_Bvec, "Cocal")) then
-       bool_Bvec = .true.
-    else
-       bool_Bvec = .false.
-    end if
+   bool_metric_curv  = CCTK_EQUALS(initial_data, "CocalBNS")
+   bool_lapse        = CCTK_EQUALS(initial_lapse, "Cocal")
+   bool_shift        = CCTK_EQUALS(initial_shift, "Cocal")
+
+   bool_hydro        = CCTK_EQUALS(initial_hydro, "Cocal")
 
    if (COCAL_ID_verbose == 1) then
-     call CCTK_INFO("Setting Hydro: " // trim(merge("true ", "false", bool_hydro)))
-     call CCTK_INFO("Setting Lapse: " // trim(merge("true ", "false", bool_lapse)))
-     call CCTK_INFO("Setting Shift: " // trim(merge("true ", "false", bool_shift)))
-     call CCTK_INFO("Setting Bvec: "  // trim(merge("true ", "false", bool_Bvec)))
+     call CCTK_INFO("Setting Hydro: "     // trim(merge("true ", "false", bool_hydro)))
+     call CCTK_INFO("Setting Lapse: "     // trim(merge("true ", "false", bool_lapse)))
+     call CCTK_INFO("Setting Shift: "     // trim(merge("true ", "false", bool_shift)))
    end if
  
    ! write(6,'(a56)', ADVANCE = "NO") "Give cartesian coordinates (x,y,z) separated by a space:"
@@ -1981,27 +1960,30 @@ implicit none
          kyz1 = psi4ca*ayz/(radi_p1)
          kzz1 = psi4ca*azz/(radi_p1)
  
-         gxx(i,j,k) = gxx1
-         gxy(i,j,k) = gxy1
-         gxz(i,j,k) = gxz1
-         gyy(i,j,k) = gyy1
-         gyz(i,j,k) = gyz1
-         gzz(i,j,k) = gzz1
+         if (bool_metric_curv) then
+            gxx(i,j,k) = gxx1
+            gxy(i,j,k) = gxy1
+            gxz(i,j,k) = gxz1
+            gyy(i,j,k) = gyy1
+            gyz(i,j,k) = gyz1
+            gzz(i,j,k) = gzz1
+   
+            kxx(i,j,k) = kxx1
+            kxy(i,j,k) = kxy1
+            kxz(i,j,k) = kxz1
+            kyy(i,j,k) = kyy1
+            kyz(i,j,k) = kyz1
+            kzz(i,j,k) = kzz1
  
-         kxx(i,j,k) = kxx1
-         kxy(i,j,k) = kxy1
-         kxz(i,j,k) = kxz1
-         kyy(i,j,k) = kyy1
-         kyz(i,j,k) = kyz1
-         kzz(i,j,k) = kzz1
- 
-         if (gxx1 == gxx1) then
-           continue
-         else 
-           call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-         end if 
+            if (gxx1 == gxx1) then
+               continue
+            else 
+               call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
+            end if 
+         end if
  
          call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
+
          if (bool_lapse) then
             alp(i,j,k) = alphca
          end if
@@ -2018,17 +2000,7 @@ implicit none
             vel(i,j,k,2) = vyu
             vel(i,j,k,3) = vzu
          end if
-         if (bool_Bvec) then
-            Bvec(i,j,k,1) = 0.0d0
-            Bvec(i,j,k,2) = 0.0d0
-            Bvec(i,j,k,3) = 0.0d0
 
-            !Avec(i,j,k,1) = 0.0d0
-            !Avec(i,j,k,2) = 0.0d0
-            !Avec(i,j,k,3) = 0.0d0
-
-            !Aphi(i,j,k) = 0.0d0
-         end if
          
  
        !   write(6,'(a6,e20.12)') "psi  =", psica

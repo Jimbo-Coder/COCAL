@@ -31,6 +31,16 @@ EXTENDS keyword initial_Bvec
   "Cocal" :: "Cocal provides the initial_bvec"
 }
 
+EXTENDS keyword initial_Avec
+{
+  "Cocal" :: "Cocal provides the initial_Avec"
+}
+
+EXTENDS keyword initial_Aphi
+{
+  "Cocal" :: "Cocal provides the initial_Aphi"
+}
+
 EXTENDS keyword initial_temperature
 {
   "Cocal" :: "Cocal provides the inital_temperature"
@@ -55,12 +65,6 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
   "MRNS_WL" :: "Magnetized Waveless"
 } "RNS_CF"
 
-CCTK_KEYWORD COCAL_ID_bnstype "Type of initial data, useless"
-{
-  "BNS_WL" :: "Waveless BNS"
-  "BNS_CF" :: "CF BNS"
-  "MBNS_WL" :: "Magnetized Waveless BNS"
-} "BNS_CF"
 
 CCTK_KEYWORD COCAL_ID_readformat "Format of the input data"
 {
@@ -83,7 +87,7 @@ CCTK_REAL COCAL_ID_cen_z "Z Position of COCAL origin in Cactus coordinates"
   *:* :: ""
 } 0.0
 
-CCTK_BOOLEAN COCAL_ID_readpot "Whether to read the Potential or faraday tensor, True for Potential, False for Fields."
+CCTK_BOOLEAN COCAL_ID_read_magnetic_potential "Whether MRNS_WL reads magnetic potentials instead of the Faraday tensor"
 {
 } "False"
 
