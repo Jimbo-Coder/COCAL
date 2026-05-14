@@ -53,7 +53,6 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
   "RNS_WL" :: "Waveless"
   "RNS_CF" :: "Conformally Flat"
   "MRNS_WL" :: "Magnetized Waveless"
-  "BHT_WL" :: "Waveless BH with Disk"
 } "RNS_CF"
 
 CCTK_KEYWORD COCAL_ID_bnstype "Type of initial data, useless"

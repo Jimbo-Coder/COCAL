@@ -5,8 +5,6 @@
 #include "Cocal/def_quantities.f90"
 #include "Cocal/def_bh_parameter.f90"
 
-#include "Cocal/def_bht_parameter.f90" 
-
 #include "Cocal/def_peos_parameter.f90"
 
 #include "Cocal/def_binary_parameter.f90" 
@@ -123,11 +121,6 @@
 #include "Cocal/IO_input_gradvep_export.f90"
 #include "Cocal/allocate_trigonometry_grav_phi_mpt.f90"
 
-#include "Cocal/interface_IO_input_matter_BHT_export.f90"
-#include "Cocal/read_bht_parameter.f90" 
-#include "Cocal/calc_bht_excision_radius.f90"
-#include "Cocal/IO_input_matter_BHT_export.f90"
-
 
 #include "cctk.h"
 #include "cctk_Arguments.h"
@@ -139,8 +132,6 @@ module COCAL_ID_data_rns
   implicit none
 
   real(8), save :: ome, ber, radi
-  real(8), save :: rexc
-
   real(8), pointer, save :: utf(:,:,:) => NULL(), uxf(:,:,:) => NULL(), uyf(:,:,:) => NULL(), uzf(:,:,:) => NULL()
   real(8), pointer, save :: emd(:,:,:) => NULL(), omef(:,:,:) => NULL(), rs(:,:) => NULL()
   real(8), pointer, save :: psif(:,:,:) => NULL(), alphf(:,:,:) => NULL(), bvxuf(:,:,:) => NULL(), bvyuf(:,:,:) => NULL(), bvzuf(:,:,:) => NULL()
@@ -218,7 +209,6 @@ use COCAL_ID_interface_IO_input_CF_star_export
 use COCAL_ID_interface_invhij_WL_export
 use COCAL_ID_interface_index_vec_down2up_export
 use COCAL_ID_interface_interpo_gr2fl_metric_CF_export
-use COCAL_ID_interface_IO_input_matter_BHT_export
 use COCAL_ID_interface_IO_input_grav_export_Ai
 use COCAL_ID_interface_IO_input_grav_export_Faraday
 use COCAL_ID_interface_IO_input_star4ve_export
@@ -249,16 +239,7 @@ implicit none
   
   call read_parameter_cactus(COCAL_ID_PathToIDf)
   call COCAL_ID_peos_initialize_cactus(COCAL_ID_PathToIDf)
-  if (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-     call COCAL_ID_read_bht_parameter_cactus(COCAL_ID_PathToIDf) ! Unique to BHT
-     call COCAL_ID_calc_bht_excision_radius ! Unique to BHT
-     call grid_r_bht('eBH') ! Dfferent naming
-     rexc = rg(0)
-     write(outstr,'(E10.4)') rexc
-     if (COCAL_ID_verbose == 1) call CCTK_INFO("Excision at r="//outstr)
-  else
-     call grid_r
-  end if
+  call grid_r
   call grid_theta
   call trig_grav_theta
   call grid_phi
@@ -272,13 +253,8 @@ implicit none
   write(outstr,'(6i5)') nrg, ntg, npg, nrf, ntf, npf
   if (COCAL_ID_verbose == 1) call CCTK_INFO("Cocal Grav grid, Fluid Grid Sizes: "//outstr)
 
-  if (.not. CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-     allocate (  emd(0:nrf,0:ntf,0:npf))
-     allocate ( omef(0:nrf,0:ntf,0:npf))
-  else
-     allocate (  emd(0:nrg,0:ntg,0:npg))
-     allocate ( omef(0:nrg,0:ntg,0:npg))
-  end if
+  allocate (  emd(0:nrf,0:ntf,0:npf))
+  allocate ( omef(0:nrf,0:ntf,0:npf))
   allocate ( psif(0:nrf,0:ntf,0:npf))
   allocate (alphf(0:nrf,0:ntf,0:npf))
   allocate (bvxuf(0:nrf,0:ntf,0:npf))
@@ -350,18 +326,14 @@ implicit none
 
   call COCAL_ID_IO_input_CF_grav_export(trim(COCAL_ID_PathToIDf)//"/rnsgra_3D.las",COCAL_ID_readformatf,psi,alph,bvxd,bvyd,bvzd)
 
-  if (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-     call COCAL_ID_IO_input_matter_BHT_export(trim(COCAL_ID_PathToIDf)//"/rnsflu_3D.las",COCAL_ID_readformatf,emd,omef,ome,ber,radi)
-  else
-     call COCAL_ID_IO_input_CF_star_export(trim(COCAL_ID_PathToIDf)//"/rnsflu_3D.las",COCAL_ID_readformatf,emd,rs,omef,ome,ber,radi)
-  end if
+  call COCAL_ID_IO_input_CF_star_export(trim(COCAL_ID_PathToIDf)//"/rnsflu_3D.las",COCAL_ID_readformatf,emd,rs,omef,ome,ber,radi)
 
   call COCAL_ID_IO_input_grav_export_Kij(trim(COCAL_ID_PathToIDf)//"/rnsgra_Kij_3D.las",kxxa,kxya,kxza,kyya,kyza,kzza)
 
   ! LET CF h_ij's remain initialized to zero.
   ! Only CF change is that h_ij = 0, everything else remains the same.
   ! Only non-trivial change between CF and WL
-  if (CCTK_EQUALS(COCAL_ID_rnstype, "RNS_WL") .or. CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL") .or. (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL"))) then
+  if (CCTK_EQUALS(COCAL_ID_rnstype, "RNS_WL") .or. CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
      call COCAL_ID_IO_input_WL_grav_export_hij(trim(COCAL_ID_PathToIDf)//"/rnsgra_hij_3D.las",COCAL_ID_readformatf,hxxd,hxyd,hxzd,hyyd,hyzd,hzzd)
   else if (CCTK_EQUALS(COCAL_ID_rnstype, "RNS_CF")) then
      continue
@@ -382,9 +354,7 @@ implicit none
 
   call COCAL_ID_index_vec_down2up_export(hxxu,hxyu,hxzu,hyyu,hyzu,hzzu,bvxu,bvyu,bvzu,bvxd,bvyd,bvzd) !trivial for CF, u=d
 
-  if (.not. CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-     call COCAL_ID_interpo_gr2fl_metric_CF_export(alph, psi, bvxu, bvyu, bvzu, alphf, psif, bvxuf, bvyuf, bvzuf, rs) !Main Interpolation
-  end if
+  call COCAL_ID_interpo_gr2fl_metric_CF_export(alph, psi, bvxu, bvyu, bvzu, alphf, psif, bvxuf, bvyuf, bvzuf, rs) !Main Interpolation
 
   if (COCAL_ID_verbose == 1) then
      write(outstr,'(A,2e20.12)')"Central emden and fluid omega: ", emd(0,0,0), omef(0,0,0)
@@ -526,9 +496,6 @@ use COCAL_ID_interface_invhij_WL_export
 use COCAL_ID_interface_index_vec_down2up_export
 use COCAL_ID_interface_interpo_gr2fl_metric_CF_export
 
-use COCAL_ID_interface_IO_input_matter_BHT_export ! Unique to BHT 
-
-
 use COCAL_ID_interface_IO_input_grav_export_Ai            ! only used in MRNS_WL
 use COCAL_ID_interface_IO_input_grav_export_Faraday       !
 use COCAL_ID_interface_IO_input_star4ve_export            !  
@@ -621,20 +588,6 @@ implicit none
            xcoc = xcac/(radi) ! COCAL coordinates are normalized by radii
            ycoc = ycac/(radi)
            zcoc = zcac/(radi)
-           rcoc = sqrt(xcoc**2 + ycoc**2 + zcoc**2)
-
-           if (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-              if ((rcoc < rexc) .and. (bool_hydro)) then
-                 press(i,j,k) = 0.0
-                 eps(i,j,k)   = 0.0
-                 vel(i,j,k,1) = 0.0
-                 vel(i,j,k,2) = 0.0
-                 vel(i,j,k,3) = 0.0
-                 Bvec(i,j,k,1) = 0.0
-                 Bvec(i,j,k,2) = 0.0
-                 Bvec(i,j,k,3) = 0.0
-              end if
-           end if
 !        write(outstr,'(A,3E20.12)') "Point given wrt COCAL:", xcoc, ycoc, zcoc
 !        call CCTK_INFO(trim(outstr))
 
@@ -664,20 +617,15 @@ implicit none
            call COCAL_ID_interpo_gr2cgr_4th(kyza , kyzca , xcoc, ycoc, zcoc)
            call COCAL_ID_interpo_gr2cgr_4th(kzza , kzzca , xcoc, ycoc, zcoc)
 
-           if (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-              call COCAL_ID_interpo_gr2cgr_4th(emd  , emdca   , xcoc, ycoc, zcoc)
-              call COCAL_ID_interpo_gr2cgr_4th(omef , omefca  , xcoc, ycoc, zcoc)
-           else
-              call COCAL_ID_interpo_fl2cgr_4th_export(emd  , emdca   , xcoc, ycoc, zcoc, rs)
-              call COCAL_ID_interpo_fl2cgr_4th_export(omef , omefca  , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(emd  , emdca   , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(omef , omefca  , xcoc, ycoc, zcoc, rs)
 
-              call COCAL_ID_interpo_fl2cgr_4th_export(bvxuf, bvxufca , xcoc, ycoc, zcoc, rs)
-              call COCAL_ID_interpo_fl2cgr_4th_export(bvyuf, bvyufca , xcoc, ycoc, zcoc, rs)
-              call COCAL_ID_interpo_fl2cgr_4th_export(bvzuf, bvzufca , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(bvxuf, bvxufca , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(bvyuf, bvyufca , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(bvzuf, bvzufca , xcoc, ycoc, zcoc, rs)
 
-              call COCAL_ID_interpo_fl2cgr_4th_export(psif , psifca  , xcoc, ycoc, zcoc, rs)
-              call COCAL_ID_interpo_fl2cgr_4th_export(alphf, alphfca , xcoc, ycoc, zcoc, rs)
-           end if
+           call COCAL_ID_interpo_fl2cgr_4th_export(psif , psifca  , xcoc, ycoc, zcoc, rs)
+           call COCAL_ID_interpo_fl2cgr_4th_export(alphf, alphfca , xcoc, ycoc, zcoc, rs)
 
            if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
               call COCAL_ID_interpo_fl2cgr_4th_export(utf, utfca , xcoc, ycoc, zcoc, rs)!4vel
@@ -699,16 +647,10 @@ implicit none
               end if
            end if
 
-           if ( CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-              bxcor = bvxuca + omefca*(-ycoc)
-              bycor = bvyuca + omefca*(xcoc)
-              bzcor = bvzuca
-           else
-              bxcor = bvxufca + omefca*(-ycoc)
-              bycor = bvyufca + omefca*(xcoc)
-              bzcor = bvzufca
-              psif4ca = psifca**4
-           end if
+           bxcor = bvxufca + omefca*(-ycoc)
+           bycor = bvyufca + omefca*(xcoc)
+           bzcor = bvzufca
+           psif4ca = psifca**4
 
            psi4ca = psica**4
 
@@ -717,10 +659,6 @@ implicit none
                  vxu = bxcor/alphfca
                  vyu = bycor/alphfca
                  vzu = bzcor/alphfca
-              else if  (CCTK_EQUALS(COCAL_ID_rnstype, "BHT_WL")) then
-                 vxu = bxcor/alphca
-                 vyu = bycor/alphca
-                 vzu = bzcor/alphca
               else if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
                  vxu = (uxfca/utfca + bvxufca)/alphfca     !
                  vyu = (uyfca/utfca + bvyufca)/alphfca     !
