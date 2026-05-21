@@ -89,7 +89,8 @@ CCTK_REAL COCAL_ID_cen_z "Z Position of COCAL origin in Cactus coordinates"
 
 CCTK_BOOLEAN COCAL_ID_read_magnetic_potential "Whether MRNS_WL reads magnetic potentials instead of the Faraday tensor"
 {
-} "False"
+
+} "True"
 
 CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
 {

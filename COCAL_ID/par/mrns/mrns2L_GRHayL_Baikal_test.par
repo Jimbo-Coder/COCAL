@@ -1,8 +1,6 @@
-# GRHayLib (ILGRMHD) + Baikal 1Layer (magnetized)
-$itlast=4
-$out_every=1
-$out_every2d=64
-$out_every3d=64
+# MRNS (magnetized waveless) + Baikal 1Layer (test grid)
+$out_every=64
+$xmax=32.0
 ActiveThorns = "
   ADMBase
   ADMCoupling
@@ -49,7 +47,6 @@ ActiveThorns = "
   SummationByParts
   SymBase
   SystemTopology
-  SystemStatistics
   TerminationTrigger
   TGRtensor
   Time
@@ -71,8 +68,7 @@ ActiveThorns = "
 
 # Finalize
 Cactus::terminate           = "iteration"
-Cactus::cctk_itlast          = 4
-Cactus::cctk_final_time     = 12120 #  divide by ~203 to get ms
+Cactus::cctk_final_time     = 256
 
 
 
@@ -87,7 +83,7 @@ TerminationTrigger::termination_file = "TerminationTrigger.txt"
 TerminationTrigger::termination_from_file   = "yes"
 TerminationTrigger::create_termination_file = "yes"
 
-TimerReport::out_every    = $out_every
+TimerReport::out_every    = 4096
 TimerReport::out_filename = "TimerReport"
 TimerReport::output_all_timers          = "yes"
 TimerReport::output_all_timers_together = "yes"
@@ -105,29 +101,25 @@ CartGrid3D::avoid_origin = "no"
 CarpetInterp::check_tree_search = "no"
 CarpetInterp::tree_search       = "yes"
 
-CoordBase::xmax = 24.0 #240.0
+CoordBase::xmax = $xmax
 CoordBase::ymax = CoordBase::xmax
 CoordBase::zmax = CoordBase::xmax
 CoordBase::xmin = -CoordBase::xmax
 CoordBase::ymin = -CoordBase::xmax
-CoordBase::zmin = -CoordBase::xmax  #-240.0
+CoordBase::zmin = -CoordBase::xmax
 # Change these parameters to change resolution. The ?max settings above
 # have to be multiples of these. 'dx' is the size of one cell in x-direction.
 # Making this smaller means using higher resolution, because more points will
 # be used to cover the same space.
-CoordBase::dx   =  1.0 # local test resolution
+CoordBase::dx   =  1.0
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
 
 CarpetRegrid2::regrid_every =   0
 CarpetRegrid2::num_centres  =   1
-CarpetRegrid2::num_levels_1 = 1
-#CarpetRegrid2::radius_1[1]  = 480.0
-#CarpetRegrid2::radius_1[1]  = 240.0
-#CarpetRegrid2::radius_1[1]  = 120.0
-#CarpetRegrid2::radius_1[2]  = 60.0
-#CarpetRegrid2::radius_1[3]  = 30.0
-#CarpetRegrid2::radius_1[4]  = 15.0
+CarpetRegrid2::num_levels_1 = 2
+CarpetRegrid2::radius_1[1]  = 0.75*$xmax
+CarpetRegrid2::radius_1[2]  = 0.375*$xmax
 
 
 
@@ -148,12 +140,12 @@ CoordBase::boundary_shiftout_z_upper    = 0
 
 #CCE_Export
 CCE_Export::nradii       = 1
-CCE_Export::radius[0]    = 10.00
+CCE_Export::radius[0]    = 0.9*$xmax
 #CCE_Export::radius[1]    = 20.00
 #CCE_Export::radius[2]    = 100.00
 #CCE_Export::radius[3]    = 200.00
 #CCE_Export::radius[4]    = 220.00
-CCE_Export::out_every    = $out_every2d
+CCE_Export::out_every    = 64
 
 
 #ReflectionSymmetry::reflection_x = "no"
@@ -190,7 +182,7 @@ CarpetLib::poison_new_memory = "yes"
 CarpetLib::poison_value      = 114
 CarpetLib::support_staggered_operators = "yes"
 
-Carpet::output_timers_every = $out_every
+Carpet::output_timers_every = 64
 
 # system specific Carpet paramters
 Carpet::max_refinement_levels    = 10
@@ -212,10 +204,10 @@ Multipole::l_max                         = 4
 Multipole::nphi                          = 240
 Multipole::nradii                        = 1
 Multipole::ntheta                        = 120
-Multipole::out_every                     = $out_every2d
+Multipole::out_every                     = 64
 Multipole::output_ascii                  = yes
 Multipole::output_hdf5                   = yes
-Multipole::radius[0]                     = 10.0#220.00
+Multipole::radius[0]                     = 0.9*$xmax
 
 Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylScal4::Psi4i' name='psi4'}"
 
@@ -261,12 +253,13 @@ InitBase::initial_data_setup_method = "init_some_levels"
 #CF: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28
 #MWL: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6
 #COCAL_ID::PathToID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12"
-COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28"
-COCAL_ID::COCAL_ID_read_magnetic_potential = "False"
+# unpack the MRNS bundle to this directory
+COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/mrns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6"
+COCAL_ID::COCAL_ID_read_magnetic_potential = "True"
 
 #Type of ID
 # [RNS_WL, RNS_CF, MRNS_WL]
-COCAL_ID::COCAL_ID_rnstype = "RNS_CF"
+COCAL_ID::COCAL_ID_rnstype = "MRNS_WL"
 
 COCAL_ID::COCAL_ID_readformat = "20.12"
 
@@ -280,8 +273,8 @@ HydroBase::initial_hydro         = "Cocal"
 HydroBase::initial_Y_e         = "none"
 HydroBase::initial_temperature = "none"
 HydroBase::initial_entropy     = "none"
-HydroBase::initial_Avec        = "zero"
-HydroBase::initial_Aphi        = "zero"
+HydroBase::initial_Avec        = "Cocal"
+HydroBase::initial_Aphi        = "Cocal"
 HydroBase::initial_Bvec          = "zero"
 ADMBase::initial_dtlapse         = "zero"
 ADMBase::initial_dtshift         = "zero"
@@ -316,7 +309,7 @@ ADMBase::shift_timelevels         = 3
 IllinoisGRMHD::Convert_to_HydroBase_every = $out_every
 
 #Spherical surface
-SphericalSurface::nsurfaces = 4
+SphericalSurface::nsurfaces = 5
 SphericalSurface::maxntheta = 39
 SphericalSurface::maxnphi = 76
 
@@ -325,53 +318,64 @@ SphericalSurface::nphi        [0] = 76
 SphericalSurface::nghoststheta[0] = 2
 SphericalSurface::nghostsphi  [0] = 2
 SphericalSurface::set_spherical[0] = yes
-SphericalSurface::name        [0] = "RNS"
+SphericalSurface::name        [0] = "waveextract surface at 50%"
 SphericalSurface::origin_x     [0] = 0.0
-SphericalSurface::radius      [0] = 5.0
+SphericalSurface::radius      [0] = 0.5*$xmax
 
 SphericalSurface::ntheta      [1] = 39
 SphericalSurface::nphi        [1] = 76
 SphericalSurface::nghoststheta[1] = 2
 SphericalSurface::nghostsphi  [1] = 2
 SphericalSurface::set_spherical[1] = yes
-SphericalSurface::name        [1] = "waveextract surface at 10"
+SphericalSurface::name        [1] = "waveextract surface at 60%"
 SphericalSurface::origin_x     [1] = 0.0
-SphericalSurface::radius      [1] = 10.0
+SphericalSurface::radius      [1] = 0.6*$xmax
 
 SphericalSurface::ntheta      [2] = 39
 SphericalSurface::nphi        [2] = 76
 SphericalSurface::nghoststheta[2] = 2
 SphericalSurface::nghostsphi  [2] = 2
 SphericalSurface::set_spherical[2] = yes
-SphericalSurface::radius      [2] = 12.0
-SphericalSurface::name        [2] = "waveextract surface at 12"
+SphericalSurface::radius      [2] = 0.7*$xmax
+SphericalSurface::name        [2] = "waveextract surface at 70%"
 
 SphericalSurface::ntheta      [3] = 39
 SphericalSurface::nphi        [3] = 76
 SphericalSurface::nghoststheta[3] = 2
 SphericalSurface::nghostsphi  [3] = 2
 SphericalSurface::set_spherical[3] = yes
-SphericalSurface::radius      [3] = 15.0
-SphericalSurface::name        [3] = "waveextract surface at 15"
+SphericalSurface::radius      [3] = 0.8*$xmax
+SphericalSurface::name        [3] = "waveextract surface at 80%"
+
+SphericalSurface::ntheta      [4] = 39
+SphericalSurface::nphi        [4] = 76
+SphericalSurface::nghoststheta[4] = 2
+SphericalSurface::nghostsphi  [4] = 2
+SphericalSurface::set_spherical[4] = yes
+SphericalSurface::radius      [4] = 0.9*$xmax
+SphericalSurface::name        [4] = "waveextract surface at 90%"
 
 #QuasiLocalMeasures
 
-QuasiLocalMeasures::num_surfaces   = 4
+QuasiLocalMeasures::num_surfaces   = 5
 QuasiLocalMeasures::spatial_order  = 4
 QuasiLocalMeasures::interpolator = "Lagrange polynomial interpolation"
 QuasiLocalMeasures::interpolator_options = "order=4"
 
-QuasiLocalMeasures::surface_name[0] = "RNS"
+QuasiLocalMeasures::surface_name[0] = "waveextract surface at 50%"
 QuasiLocalMeasures::surface_index[0] = 0
 
-QuasiLocalMeasures::surface_name[1] = "waveextract surface at 10"
+QuasiLocalMeasures::surface_name[1] = "waveextract surface at 60%"
 QuasiLocalMeasures::surface_index[1] = 1
 
-QuasiLocalMeasures::surface_name[2] = "waveextract surface at 12"
+QuasiLocalMeasures::surface_name[2] = "waveextract surface at 70%"
 QuasiLocalMeasures::surface_index[2] = 2
 
-QuasiLocalMeasures::surface_name[3] = "waveextract surface at 15"
+QuasiLocalMeasures::surface_name[3] = "waveextract surface at 80%"
 QuasiLocalMeasures::surface_index[3] = 3
+
+QuasiLocalMeasures::surface_name[4] = "waveextract surface at 90%"
+QuasiLocalMeasures::surface_index[4] = 4
 
 
 # Volume Integrals 
@@ -388,7 +392,7 @@ VolumeIntegrals_GRMHD::Integration_quantity_keyword[1] = "centerofmass"
 VolumeIntegrals_GRMHD::Integration_quantity_keyword[2] = "restmass"
 
 
-VolumeIntegrals_GRMHD::volintegral_inside_sphere__radius            [1] =  7.0
+VolumeIntegrals_GRMHD::volintegral_inside_sphere__radius            [1] =  0.5*$xmax
 
 
 
@@ -411,9 +415,9 @@ VolumeIntegrals_vacuum::Integration_quantity_keyword[4]       = "ADM_Angular_Mom
 VolumeIntegrals_vacuum::Integration_quantity_keyword[5]       = "ADM_Angular_Momentum"
 VolumeIntegrals_vacuum::Integration_quantity_keyword[6]        = "H_M_CnstraintsL2"
 
-VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[3] = 15.
-VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[4] = 20.
-VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[5] = 21.
+VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[3] = 0.5*$xmax
+VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[4] = 0.6*$xmax
+VolumeIntegrals_vacuum::volintegral_inside_sphere__radius[5] = 0.7*$xmax
 
 # I/O
 
@@ -427,7 +431,7 @@ IO::out_dir             = ${parfile}
 IO::out_mode            = "onefile"
 
 # Some screen output
-IOBasic::outInfo_every = $out_every
+IOBasic::outInfo_every = 64
 IOBasic::outInfo_vars  = "Carpet::physical_time_per_hour HydroBase::rho{reductions='maximum'} Baikal::HGF{reductions='maximum'}"
 
 #---------GRHayLib---------
@@ -475,13 +479,14 @@ IOScalar::outScalar_vars     = "
  Baikal::HGF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
  Baikal::MU0GF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
  Carpet::timing{reductions='average'}
+ #VolumeIntegrals_vacuum::MADM_GFtest
 "
 CarpetIOHDF5::checkpoint                  = yes
-IOUtil::checkpoint_dir                  = "checkpoints"
-IOUtil::checkpoint_ID                   = no
-IOUtil::checkpoint_on_terminate         = no
+IOUtil::checkpoint_dir                  = $parfile
+IOUtil::checkpoint_ID                   = yes
+IOUtil::checkpoint_on_terminate         = yes
 IOUtil::recover     = "autoprobe"
-IOUtil::recover_dir = "checkpoints"
+IOUtil::recover_dir = $parfile
 
 #out 0d vars
 
@@ -518,12 +523,13 @@ CarpetIOASCII::out1D_vars         = "
  ADMBase::curv
  Baikal::HGF
  Baikal::MU0GF
+ #VolumeIntegrals_vacuum::MADM_GFtest
 "
 
 # 2D HDF5 output
 CarpetIOHDF5::output_buffer_points = "no"
 
-CarpetIOHDF5::out2D_every = $out_every2d
+CarpetIOHDF5::out2D_every = $out_every
 CarpetIOHDF5::out2D_vars = "
  HydroBase::rho
  HydroBase::vel
@@ -535,8 +541,8 @@ CarpetIOHDF5::out2D_vars = "
  ADMBase::metric
  Baikal::HGF
  Baikal::MU0GF
+ #VolumeIntegrals_vacuum::MADM_GFtest
  "
-
 
 #------------------AngularMom configuration--------------------------
 #AngularMom::MetricVarString = "Baikal::hDD00GF" 
