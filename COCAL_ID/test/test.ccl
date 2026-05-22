@@ -1,0 +1,37 @@
+ABSTOL 1e-12
+RELTOL 1e-10
+
+TEST cocal_rns_cf
+{
+  NPROCS 1
+}
+
+TEST cocal_rns_wl
+{
+  NPROCS 1
+}
+
+TEST cocal_mrns_wl_potential
+{
+  NPROCS 1
+}
+
+TEST cocal_mrns_wl_faraday
+{
+  NPROCS 1
+}
+
+TEST cocal_bns_co
+{
+  NPROCS 1
+}
+
+TEST cocal_bns_ir
+{
+  NPROCS 1
+}
+
+TEST cocal_bns_sp
+{
+  NPROCS 1
+}

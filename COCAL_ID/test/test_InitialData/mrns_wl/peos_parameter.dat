@@ -1,0 +1,5 @@
+            2  1.00000d+15     : nphase, rhoini_cgs
+  5.60000e+14  3.24059e+34     : rho_0, pre_0
+  1.00000d+17  2.00000d+00     : rho, gamma
+  5.60000e+14  2.00000d+00     : rho, gamma
+  1.00000d+00  2.00000d+00     : rho, gamma

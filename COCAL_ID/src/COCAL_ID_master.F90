@@ -59,6 +59,8 @@
 #include "Cocal/IO_input_grav_export_Faraday.f90"
 #include "Cocal/IO_input_star4ve_export.f90"
 #include "Cocal/interpo_gr2fl_export.f90"
+#include "Cocal/interpo_lag4th_weights.f90"
+#include "Cocal/interpo_cgr_stencil_4th.f90"
 #include "Cocal/interpo_gr2cgr_4th.f90"
 #include "Cocal/interpo_fl2cgr_4th_export.f90"
 #include "Cocal/interpo_lag4th_2Dsurf.f90"
@@ -150,7 +152,7 @@ module COCAL_ID_data_bns
   implicit none
 
   character*400, save :: COCAL_ID_PathToIDf, COCAL_ID_readformatf
-  integer, save :: COCAL_ID_PathToIDf_len, COCAL_ID_bnstypelen, COCAL_ID_readformatlen
+  integer, save :: COCAL_ID_PathToIDf_len, COCAL_ID_readformatlen
   character(2), save :: id_type
   integer, save :: ierr = 0
   real(8), save :: rr3, dis_cm
@@ -511,8 +513,11 @@ implicit none
   
   integer :: COCAL_ID_PathToIDf_len,COCAL_ID_readformatlen 
   integer :: i, j, k, nx, ny, nz
+  integer :: gr_irgex4(4,4,4), gr_itgex4(4,4,4), gr_ipgex4(4,4,4)
+  integer :: fl_irgex4(4,4,4), fl_itgex4(4,4,4), fl_ipgex4(4,4,4)
 
   logical :: bool_metric_curv, bool_lapse, bool_shift, bool_hydro, bool_Bvec, bool_Avec_Aphi
+  logical :: outside_fluid
   
   real(8) :: xcac, ycac, zcac ! Cactus coordinates
   real(8) :: xcoc, ycoc, zcoc, rcoc ! COCAL coordinates
@@ -528,6 +533,8 @@ implicit none
   real(8) :: va1, vaxd1, vayd1, vazd1, fxd1, fyd1, fzd1, fxyd1, fxzd1, fyzd1
   real(8) :: vaca, vaxdca, vaydca, vazdca, fxdca, fydca, fzdca, fxydca, fxzdca, fyzdca
   real(8) :: utfca, uxfca, uyfca, uzfca ! Fluid 4 vel
+  real(8) :: gr_wr(4), gr_wth(4), gr_wphi(4)
+  real(8) :: fl_wr(4), fl_wth(4), fl_wphi(4)
   if (COCAL_ID_verbose == 1) then 
      call CCTK_INFO("Matrices and pointers declared")
      call CCTK_INFO("Executing main COCAL_ID RNS reader...")
@@ -581,9 +588,9 @@ implicit none
   do k = 1, nz
      do j = 1, ny
         do i = 1, nx
-           xcac = x(i,j,k) - COCAL_ID_cen_x
-           ycac = y(i,j,k) - COCAL_ID_cen_y
-           zcac = z(i,j,k) - COCAL_ID_cen_z
+           xcac = x(i,j,k)
+           ycac = y(i,j,k)
+           zcac = z(i,j,k)
 
            xcoc = xcac/(radi) ! COCAL coordinates are normalized by radii
            ycoc = ycac/(radi)
@@ -591,61 +598,69 @@ implicit none
 !        write(outstr,'(A,3E20.12)') "Point given wrt COCAL:", xcoc, ycoc, zcoc
 !        call CCTK_INFO(trim(outstr))
 
-           !interpolate COCAL data onto Cactus grid
-           call COCAL_ID_interpo_gr2cgr_4th(psi , psica , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(alph, alphca, xcoc, ycoc, zcoc)
+              !interpolate COCAL data onto Cactus grid
+              call COCAL_ID_gr2cgr_4th_setup(xcoc,ycoc,zcoc,gr_irgex4,gr_itgex4,gr_ipgex4,gr_wr,gr_wth,gr_wphi)
+              call COCAL_ID_cgr_4th_apply(psi , psica , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(alph, alphca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
-           call COCAL_ID_interpo_gr2cgr_4th(bvxd, bvxdca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(bvyd, bvydca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(bvzd, bvzdca, xcoc, ycoc, zcoc)
+              call COCAL_ID_cgr_4th_apply(bvxd, bvxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(bvyd, bvydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(bvzd, bvzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
-           call COCAL_ID_interpo_gr2cgr_4th(bvxu, bvxuca, xcoc, ycoc, zcoc) !Repeats itself for CF
-           call COCAL_ID_interpo_gr2cgr_4th(bvyu, bvyuca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(bvzu, bvzuca, xcoc, ycoc, zcoc)
+              call COCAL_ID_cgr_4th_apply(bvxu, bvxuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Repeats itself for CF
+              call COCAL_ID_cgr_4th_apply(bvyu, bvyuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(bvzu, bvzuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
-           call COCAL_ID_interpo_gr2cgr_4th(hxxd, hxxdca, xcoc, ycoc, zcoc) !Trivial for CF, 0 = 0
-           call COCAL_ID_interpo_gr2cgr_4th(hxyd, hxydca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(hxzd, hxzdca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(hyyd, hyydca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(hyzd, hyzdca, xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(hzzd, hzzdca, xcoc, ycoc, zcoc)
+              call COCAL_ID_cgr_4th_apply(hxxd, hxxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Trivial for CF, 0 = 0
+              call COCAL_ID_cgr_4th_apply(hxyd, hxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(hxzd, hxzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(hyyd, hyydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(hyzd, hyzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(hzzd, hzzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
-           call COCAL_ID_interpo_gr2cgr_4th(kxxa , kxxca , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(kxya , kxyca , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(kxza , kxzca , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(kyya , kyyca , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(kyza , kyzca , xcoc, ycoc, zcoc)
-           call COCAL_ID_interpo_gr2cgr_4th(kzza , kzzca , xcoc, ycoc, zcoc)
+              call COCAL_ID_cgr_4th_apply(kxxa , kxxca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(kxya , kxyca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(kxza , kxzca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(kyya , kyyca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(kyza , kyzca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+              call COCAL_ID_cgr_4th_apply(kzza , kzzca , gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
-           call COCAL_ID_interpo_fl2cgr_4th_export(emd  , emdca   , xcoc, ycoc, zcoc, rs)
-           call COCAL_ID_interpo_fl2cgr_4th_export(omef , omefca  , xcoc, ycoc, zcoc, rs)
+              emdca=0.0d0; omefca=0.0d0; bvxufca=0.0d0; bvyufca=0.0d0; bvzufca=0.0d0
+              psifca=0.0d0; alphfca=0.0d0; utfca=0.0d0; uxfca=0.0d0; uyfca=0.0d0; uzfca=0.0d0
+              call COCAL_ID_fl2cgr_4th_setup(xcoc,ycoc,zcoc,rs,outside_fluid,fl_irgex4,fl_itgex4,fl_ipgex4,fl_wr,fl_wth,fl_wphi)
+              if (.not. outside_fluid) then
+                 call COCAL_ID_cgr_4th_apply(emd  , emdca  , fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
+                 call COCAL_ID_cgr_4th_apply(omef , omefca , fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
 
-           call COCAL_ID_interpo_fl2cgr_4th_export(bvxuf, bvxufca , xcoc, ycoc, zcoc, rs)
-           call COCAL_ID_interpo_fl2cgr_4th_export(bvyuf, bvyufca , xcoc, ycoc, zcoc, rs)
-           call COCAL_ID_interpo_fl2cgr_4th_export(bvzuf, bvzufca , xcoc, ycoc, zcoc, rs)
+                 call COCAL_ID_cgr_4th_apply(bvxuf, bvxufca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
+                 call COCAL_ID_cgr_4th_apply(bvyuf, bvyufca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
+                 call COCAL_ID_cgr_4th_apply(bvzuf, bvzufca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
 
-           call COCAL_ID_interpo_fl2cgr_4th_export(psif , psifca  , xcoc, ycoc, zcoc, rs)
-           call COCAL_ID_interpo_fl2cgr_4th_export(alphf, alphfca , xcoc, ycoc, zcoc, rs)
+                 call COCAL_ID_cgr_4th_apply(psif , psifca , fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
+                 call COCAL_ID_cgr_4th_apply(alphf, alphfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
 
-           if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
-              call COCAL_ID_interpo_fl2cgr_4th_export(utf, utfca , xcoc, ycoc, zcoc, rs)!4vel
-              call COCAL_ID_interpo_fl2cgr_4th_export(uxf, uxfca , xcoc, ycoc, zcoc, rs)!
-              call COCAL_ID_interpo_fl2cgr_4th_export(uyf, uyfca , xcoc, ycoc, zcoc, rs)!
-              call COCAL_ID_interpo_fl2cgr_4th_export(uzf, uzfca , xcoc, ycoc, zcoc, rs)!
-              if (COCAL_ID_read_magnetic_potential == 1) then
-                 call COCAL_ID_interpo_gr2cgr_4th(  va,   vaca, xcoc, ycoc, zcoc)!potentials
-                 call COCAL_ID_interpo_gr2cgr_4th(vaxd, vaxdca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(vayd, vaydca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(vazd, vazdca, xcoc, ycoc, zcoc)
-              else if (COCAL_ID_read_magnetic_potential == 0) then
-                 call COCAL_ID_interpo_gr2cgr_4th(fxd,   fxdca, xcoc, ycoc, zcoc) !Faraday/fields
-                 call COCAL_ID_interpo_gr2cgr_4th(fyd,   fydca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(fzd,   fzdca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(fxyd, fxydca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(fxzd, fxzdca, xcoc, ycoc, zcoc)
-                 call COCAL_ID_interpo_gr2cgr_4th(fyzd, fyzdca, xcoc, ycoc, zcoc)
+                 if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
+                    call COCAL_ID_cgr_4th_apply(utf, utfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!4vel
+                    call COCAL_ID_cgr_4th_apply(uxf, uxfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
+                    call COCAL_ID_cgr_4th_apply(uyf, uyfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
+                    call COCAL_ID_cgr_4th_apply(uzf, uzfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
+                 end if
               end if
-           end if
+              if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
+                 if (COCAL_ID_read_magnetic_potential == 1) then
+                    call COCAL_ID_cgr_4th_apply(  va,   vaca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)!potentials
+                    call COCAL_ID_cgr_4th_apply(vaxd, vaxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(vayd, vaydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(vazd, vazdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                 else if (COCAL_ID_read_magnetic_potential == 0) then
+                    call COCAL_ID_cgr_4th_apply(fxd,   fxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Faraday/fields
+                    call COCAL_ID_cgr_4th_apply(fyd,   fydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(fzd,   fzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(fxyd, fxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(fxzd, fxzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    call COCAL_ID_cgr_4th_apply(fyzd, fyzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                 end if
+              end if
 
            bxcor = bvxufca + omefca*(-ycoc)
            bycor = bvyufca + omefca*(xcoc)
@@ -1261,6 +1276,7 @@ implicit none
    real(long) ::  rc_p2, thc_p2, phic_p2, varpic_p2, rcf_p2, rsca_p2
    real(long) ::  rc_p3, thc_p3, phic_p3, varpic_p3
    real(long) ::  r4(4), th4(4), phi4(4), fr4(4), ft4(4), fp4(4)
+   real(long) ::  wr4(4), wth4(4), wphi4(4)
    real(long) ::  fr4psi(4)   , ft4psi(4)   , fp4psi(4)
    real(long) ::  fr4alph(4)  , ft4alph(4)  , fp4alph(4)
    real(long) ::  fr4bvxd(4)  , ft4bvxd(4)  , fp4bvxd(4)
@@ -1282,7 +1298,7 @@ implicit none
  !
    integer :: irg, itg, ipg, irgex, itgex, ipgex
    integer :: ir0, it0, ip0, irg0 , itg0 , ipg0, ii, jj, kk
-   real(long), external :: COCAL_ID_lagint_4th
+   real(long), external :: COCAL_ID_lagint_4th_apply
  !
 
  
@@ -1372,7 +1388,10 @@ implicit none
              th4(ii) = thgex_p3(itg0)
              phi4(ii) = phigex_p3(ipg0)
            end do
-       !
+           call COCAL_ID_lagint_4th_weights(r4,rc_p3,wr4)
+           call COCAL_ID_lagint_4th_weights(th4,thc_p3,wth4)
+           call COCAL_ID_lagint_4th_weights(phi4,phic_p3,wphi4)
+         !
            do kk = 1, 4
              ipg0 = ip0 + kk - 1
              do jj = 1, 4
@@ -1394,41 +1413,41 @@ implicit none
                  fr4ayz(ii)  =  ayz_p3(irgex,itgex,ipgex)
                  fr4azz(ii)  =  azz_p3(irgex,itgex,ipgex)
                end do
-               ft4psi(jj)  = COCAL_ID_lagint_4th(r4,fr4psi ,rc_p3)
-               ft4alph(jj) = COCAL_ID_lagint_4th(r4,fr4alph,rc_p3)
-               ft4bvxd(jj) = COCAL_ID_lagint_4th(r4,fr4bvxd,rc_p3)
-               ft4bvyd(jj) = COCAL_ID_lagint_4th(r4,fr4bvyd,rc_p3)
-               ft4bvzd(jj) = COCAL_ID_lagint_4th(r4,fr4bvzd,rc_p3)
-               ft4axx(jj)  = COCAL_ID_lagint_4th(r4,fr4axx ,rc_p3)
-               ft4axy(jj)  = COCAL_ID_lagint_4th(r4,fr4axy ,rc_p3)
-               ft4axz(jj)  = COCAL_ID_lagint_4th(r4,fr4axz ,rc_p3)
-               ft4ayy(jj)  = COCAL_ID_lagint_4th(r4,fr4ayy ,rc_p3)
-               ft4ayz(jj)  = COCAL_ID_lagint_4th(r4,fr4ayz ,rc_p3)
-               ft4azz(jj)  = COCAL_ID_lagint_4th(r4,fr4azz ,rc_p3)
+               ft4psi(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4psi )
+               ft4alph(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4alph)
+               ft4bvxd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvxd)
+               ft4bvyd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvyd)
+               ft4bvzd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvzd)
+               ft4axx(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axx )
+               ft4axy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axy )
+               ft4axz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axz )
+               ft4ayy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayy )
+               ft4ayz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayz )
+               ft4azz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4azz )
              end do
-             fp4psi(kk)  = COCAL_ID_lagint_4th(th4,ft4psi ,thc_p3)
-             fp4alph(kk) = COCAL_ID_lagint_4th(th4,ft4alph,thc_p3)
-             fp4bvxd(kk) = COCAL_ID_lagint_4th(th4,ft4bvxd,thc_p3)
-             fp4bvyd(kk) = COCAL_ID_lagint_4th(th4,ft4bvyd,thc_p3)
-             fp4bvzd(kk) = COCAL_ID_lagint_4th(th4,ft4bvzd,thc_p3)
-             fp4axx(kk)  = COCAL_ID_lagint_4th(th4,ft4axx ,thc_p3)
-             fp4axy(kk)  = COCAL_ID_lagint_4th(th4,ft4axy ,thc_p3)
-             fp4axz(kk)  = COCAL_ID_lagint_4th(th4,ft4axz ,thc_p3)
-             fp4ayy(kk)  = COCAL_ID_lagint_4th(th4,ft4ayy ,thc_p3)
-             fp4ayz(kk)  = COCAL_ID_lagint_4th(th4,ft4ayz ,thc_p3)
-             fp4azz(kk)  = COCAL_ID_lagint_4th(th4,ft4azz ,thc_p3)
+             fp4psi(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4psi )
+             fp4alph(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4alph)
+             fp4bvxd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvxd)
+             fp4bvyd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvyd)
+             fp4bvzd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvzd)
+             fp4axx(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axx )
+             fp4axy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axy )
+             fp4axz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axz )
+             fp4ayy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayy )
+             fp4ayz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayz )
+             fp4azz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4azz )
            end do
-           psica  = COCAL_ID_lagint_4th(phi4,fp4psi ,phic_p3)
-           alphca = COCAL_ID_lagint_4th(phi4,fp4alph,phic_p3)
-           bvxdca = COCAL_ID_lagint_4th(phi4,fp4bvxd,phic_p3)
-           bvydca = COCAL_ID_lagint_4th(phi4,fp4bvyd,phic_p3)
-           bvzdca = COCAL_ID_lagint_4th(phi4,fp4bvzd,phic_p3)
-           axx    = COCAL_ID_lagint_4th(phi4,fp4axx ,phic_p3)
-           axy    = COCAL_ID_lagint_4th(phi4,fp4axy ,phic_p3)
-           axz    = COCAL_ID_lagint_4th(phi4,fp4axz ,phic_p3)
-           ayy    = COCAL_ID_lagint_4th(phi4,fp4ayy ,phic_p3)
-           ayz    = COCAL_ID_lagint_4th(phi4,fp4ayz ,phic_p3)
-           azz    = COCAL_ID_lagint_4th(phi4,fp4azz ,phic_p3)
+           psica  = COCAL_ID_lagint_4th_apply(wphi4,fp4psi )
+           alphca = COCAL_ID_lagint_4th_apply(wphi4,fp4alph)
+           bvxdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvxd)
+           bvydca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvyd)
+           bvzdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvzd)
+           axx    = COCAL_ID_lagint_4th_apply(wphi4,fp4axx )
+           axy    = COCAL_ID_lagint_4th_apply(wphi4,fp4axy )
+           axz    = COCAL_ID_lagint_4th_apply(wphi4,fp4axz )
+           ayy    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayy )
+           ayz    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayz )
+           azz    = COCAL_ID_lagint_4th_apply(wphi4,fp4azz )
  
            psi4ca = psica**4
            vxu = 0.0d0
@@ -1481,7 +1500,10 @@ implicit none
                th4(ii) = thgex_p1(itg0)
                phi4(ii) = phigex_p1(ipg0)
              end do
-       !
+             call COCAL_ID_lagint_4th_weights(r4,rc_p1,wr4)
+             call COCAL_ID_lagint_4th_weights(th4,thc_p1,wth4)
+             call COCAL_ID_lagint_4th_weights(phi4,phic_p1,wphi4)
+          !
              do kk = 1, 4
                ipg0 = ip0 + kk - 1
                do jj = 1, 4
@@ -1503,41 +1525,41 @@ implicit none
                    fr4ayz(ii)  =  ayz_p1(irgex,itgex,ipgex)
                    fr4azz(ii)  =  azz_p1(irgex,itgex,ipgex)
                  end do
-                 ft4psi(jj)  = COCAL_ID_lagint_4th(r4,fr4psi ,rc_p1)
-                 ft4alph(jj) = COCAL_ID_lagint_4th(r4,fr4alph,rc_p1)
-                 ft4bvxd(jj) = COCAL_ID_lagint_4th(r4,fr4bvxd,rc_p1)
-                 ft4bvyd(jj) = COCAL_ID_lagint_4th(r4,fr4bvyd,rc_p1)
-                 ft4bvzd(jj) = COCAL_ID_lagint_4th(r4,fr4bvzd,rc_p1)
-                 ft4axx(jj)  = COCAL_ID_lagint_4th(r4,fr4axx ,rc_p1)
-                 ft4axy(jj)  = COCAL_ID_lagint_4th(r4,fr4axy ,rc_p1)
-                 ft4axz(jj)  = COCAL_ID_lagint_4th(r4,fr4axz ,rc_p1)
-                 ft4ayy(jj)  = COCAL_ID_lagint_4th(r4,fr4ayy ,rc_p1)
-                 ft4ayz(jj)  = COCAL_ID_lagint_4th(r4,fr4ayz ,rc_p1)
-                 ft4azz(jj)  = COCAL_ID_lagint_4th(r4,fr4azz ,rc_p1)
+                 ft4psi(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4psi )
+                 ft4alph(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4alph)
+                 ft4bvxd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvxd)
+                 ft4bvyd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvyd)
+                 ft4bvzd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvzd)
+                 ft4axx(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axx )
+                 ft4axy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axy )
+                 ft4axz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axz )
+                 ft4ayy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayy )
+                 ft4ayz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayz )
+                 ft4azz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4azz )
                end do
-               fp4psi(kk)  = COCAL_ID_lagint_4th(th4,ft4psi ,thc_p1)
-               fp4alph(kk) = COCAL_ID_lagint_4th(th4,ft4alph,thc_p1)
-               fp4bvxd(kk) = COCAL_ID_lagint_4th(th4,ft4bvxd,thc_p1)
-               fp4bvyd(kk) = COCAL_ID_lagint_4th(th4,ft4bvyd,thc_p1)
-               fp4bvzd(kk) = COCAL_ID_lagint_4th(th4,ft4bvzd,thc_p1)
-               fp4axx(kk)  = COCAL_ID_lagint_4th(th4,ft4axx ,thc_p1)
-               fp4axy(kk)  = COCAL_ID_lagint_4th(th4,ft4axy ,thc_p1)
-               fp4axz(kk)  = COCAL_ID_lagint_4th(th4,ft4axz ,thc_p1)
-               fp4ayy(kk)  = COCAL_ID_lagint_4th(th4,ft4ayy ,thc_p1)
-               fp4ayz(kk)  = COCAL_ID_lagint_4th(th4,ft4ayz ,thc_p1)
-               fp4azz(kk)  = COCAL_ID_lagint_4th(th4,ft4azz ,thc_p1)
+               fp4psi(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4psi )
+               fp4alph(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4alph)
+               fp4bvxd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvxd)
+               fp4bvyd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvyd)
+               fp4bvzd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvzd)
+               fp4axx(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axx )
+               fp4axy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axy )
+               fp4axz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axz )
+               fp4ayy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayy )
+               fp4ayz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayz )
+               fp4azz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4azz )
              end do
-             psica  = COCAL_ID_lagint_4th(phi4,fp4psi ,phic_p1)
-             alphca = COCAL_ID_lagint_4th(phi4,fp4alph,phic_p1)
-             bvxdca = COCAL_ID_lagint_4th(phi4,fp4bvxd,phic_p1)
-             bvydca = COCAL_ID_lagint_4th(phi4,fp4bvyd,phic_p1)
-             bvzdca = COCAL_ID_lagint_4th(phi4,fp4bvzd,phic_p1)
-             axx    = COCAL_ID_lagint_4th(phi4,fp4axx ,phic_p1)
-             axy    = COCAL_ID_lagint_4th(phi4,fp4axy ,phic_p1)
-             axz    = COCAL_ID_lagint_4th(phi4,fp4axz ,phic_p1)
-             ayy    = COCAL_ID_lagint_4th(phi4,fp4ayy ,phic_p1)
-             ayz    = COCAL_ID_lagint_4th(phi4,fp4ayz ,phic_p1)
-             azz    = COCAL_ID_lagint_4th(phi4,fp4azz ,phic_p1)
+             psica  = COCAL_ID_lagint_4th_apply(wphi4,fp4psi )
+             alphca = COCAL_ID_lagint_4th_apply(wphi4,fp4alph)
+             bvxdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvxd)
+             bvydca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvyd)
+             bvzdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvzd)
+             axx    = COCAL_ID_lagint_4th_apply(wphi4,fp4axx )
+             axy    = COCAL_ID_lagint_4th_apply(wphi4,fp4axy )
+             axz    = COCAL_ID_lagint_4th_apply(wphi4,fp4axz )
+             ayy    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayy )
+             ayz    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayz )
+             azz    = COCAL_ID_lagint_4th_apply(wphi4,fp4azz )
  
              psi4ca = psica**4
        !      write(6,*) axx,axy,axz,ayy,ayz,azz
@@ -1549,12 +1571,13 @@ implicit none
                do irg = 0, nrf_p1+1
                  if (rcf_p1.lt.rgex_p1(irg).and.rcf_p1.ge.rgex_p1(irg-1)) ir0 = min0(irg-2,nrf_p1-3)
                end do
-       !
+          !
                do ii = 1, 4
                  irg0 = ir0 + ii - 1
                  r4(ii) = rgex_p1(irg0)
                end do
-       !
+               call COCAL_ID_lagint_4th_weights(r4,rcf_p1,wr4)
+          !
                do kk = 1, 4
                  ipg0 = ip0 + kk - 1
                  do jj = 1, 4
@@ -1585,68 +1608,68 @@ implicit none
                      fr4bvydf(ii) = bvydf_p1(irgex,itgex,ipgex)
                      fr4bvzdf(ii) = bvzdf_p1(irgex,itgex,ipgex)
                    end do
-                   ft4emd(jj)   = COCAL_ID_lagint_4th(r4,fr4emd  ,rcf_p1)
+                   ft4emd(jj)   = COCAL_ID_lagint_4th_apply(wr4,fr4emd  )
                    select case (trim(id_type))
                       case ("IR","SP")
-                        ft4vepxf(jj) = COCAL_ID_lagint_4th(r4,fr4vepxf,rcf_p1) !Unique to IR, SP has 3 more
-                        ft4vepyf(jj) = COCAL_ID_lagint_4th(r4,fr4vepyf,rcf_p1) !Unique to IR, SP has 3 more
-                        ft4vepzf(jj) = COCAL_ID_lagint_4th(r4,fr4vepzf,rcf_p1) !Unique to IR, SP has 3 more
+                        ft4vepxf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepxf) !Unique to IR, SP has 3 more
+                        ft4vepyf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepyf) !Unique to IR, SP has 3 more
+                        ft4vepzf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepzf) !Unique to IR, SP has 3 more
                       select case (trim(id_type))
                         case ("SP")
-                          ft4wxspf(jj) = COCAL_ID_lagint_4th(r4,fr4wxspf,rcf_p1)
-                          ft4wyspf(jj) = COCAL_ID_lagint_4th(r4,fr4wyspf,rcf_p1)
-                          ft4wzspf(jj) = COCAL_ID_lagint_4th(r4,fr4wzspf,rcf_p1)
+                          ft4wxspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wxspf)
+                          ft4wyspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wyspf)
+                          ft4wzspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wzspf)
                       end select
                    end select
                    
  
-                   ft4psif(jj)  = COCAL_ID_lagint_4th(r4,fr4psif ,rcf_p1)
-                   ft4alphf(jj) = COCAL_ID_lagint_4th(r4,fr4alphf,rcf_p1)
-                   ft4bvxdf(jj) = COCAL_ID_lagint_4th(r4,fr4bvxdf,rcf_p1)
-                   ft4bvydf(jj) = COCAL_ID_lagint_4th(r4,fr4bvydf,rcf_p1)
-                   ft4bvzdf(jj) = COCAL_ID_lagint_4th(r4,fr4bvzdf,rcf_p1)
+                   ft4psif(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4psif )
+                   ft4alphf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4alphf)
+                   ft4bvxdf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvxdf)
+                   ft4bvydf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvydf)
+                   ft4bvzdf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvzdf)
                  end do
-                 fp4emd(kk)   = COCAL_ID_lagint_4th(th4,ft4emd  ,thc_p1)
+                 fp4emd(kk)   = COCAL_ID_lagint_4th_apply(wth4,ft4emd  )
                  select case (trim(id_type))
                     case ("IR","SP")
-                      fp4vepxf(kk) = COCAL_ID_lagint_4th(th4,ft4vepxf,thc_p1) !Unique to iR, SP has 3 more
-                      fp4vepyf(kk) = COCAL_ID_lagint_4th(th4,ft4vepyf,thc_p1) !Unique to iR, SP has 3 more
-                      fp4vepzf(kk) = COCAL_ID_lagint_4th(th4,ft4vepzf,thc_p1) !Unique to iR, SP has 3 more
+                      fp4vepxf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepxf) !Unique to iR, SP has 3 more
+                      fp4vepyf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepyf) !Unique to iR, SP has 3 more
+                      fp4vepzf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepzf) !Unique to iR, SP has 3 more
                       select case (trim(id_type))
                         case ("SP")
-                          fp4wxspf(kk) = COCAL_ID_lagint_4th(th4,ft4wxspf,thc_p1)
-                          fp4wyspf(kk) = COCAL_ID_lagint_4th(th4,ft4wyspf,thc_p1)
-                          fp4wzspf(kk) = COCAL_ID_lagint_4th(th4,ft4wzspf,thc_p1)
+                          fp4wxspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wxspf)
+                          fp4wyspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wyspf)
+                          fp4wzspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wzspf)
                       end select
                   end select
                  
  
-                 fp4psif(kk)  = COCAL_ID_lagint_4th(th4,ft4psif ,thc_p1)
-                 fp4alphf(kk) = COCAL_ID_lagint_4th(th4,ft4alphf,thc_p1)
-                 fp4bvxdf(kk) = COCAL_ID_lagint_4th(th4,ft4bvxdf,thc_p1)
-                 fp4bvydf(kk) = COCAL_ID_lagint_4th(th4,ft4bvydf,thc_p1)
-                 fp4bvzdf(kk) = COCAL_ID_lagint_4th(th4,ft4bvzdf,thc_p1)
+                 fp4psif(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4psif )
+                 fp4alphf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4alphf)
+                 fp4bvxdf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvxdf)
+                 fp4bvydf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvydf)
+                 fp4bvzdf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvzdf)
                end do
-               emdca   = COCAL_ID_lagint_4th(phi4,fp4emd  ,phic_p1)
+               emdca   = COCAL_ID_lagint_4th_apply(wphi4,fp4emd  )
 
                select case (trim(id_type))
                   case ("IR","SP")
-                    vepxfca = COCAL_ID_lagint_4th(phi4,fp4vepxf,phic_p1) !Unique to IR, SP has 3 more
-                    vepyfca = COCAL_ID_lagint_4th(phi4,fp4vepyf,phic_p1) !Unique to IR, SP has 3 more
-                    vepzfca = COCAL_ID_lagint_4th(phi4,fp4vepzf,phic_p1) !Unique to IR, SP has 3 more
+                    vepxfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepxf) !Unique to IR, SP has 3 more
+                    vepyfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepyf) !Unique to IR, SP has 3 more
+                    vepzfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepzf) !Unique to IR, SP has 3 more
                     select case (trim(id_type))
                       case ("SP")
-                        wxspfca = COCAL_ID_lagint_4th(phi4,fp4wxspf,phic_p1)
-                        wyspfca = COCAL_ID_lagint_4th(phi4,fp4wyspf,phic_p1)
-                        wzspfca = COCAL_ID_lagint_4th(phi4,fp4wzspf,phic_p1)
+                        wxspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wxspf)
+                        wyspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wyspf)
+                        wzspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wzspf)
                     end select
                end select
  
-               psifca  = COCAL_ID_lagint_4th(phi4,fp4psif ,phic_p1)
-               alphfca = COCAL_ID_lagint_4th(phi4,fp4alphf,phic_p1)
-               bvxdfca = COCAL_ID_lagint_4th(phi4,fp4bvxdf,phic_p1)
-               bvydfca = COCAL_ID_lagint_4th(phi4,fp4bvydf,phic_p1)
-               bvzdfca = COCAL_ID_lagint_4th(phi4,fp4bvzdf,phic_p1)
+               psifca  = COCAL_ID_lagint_4th_apply(wphi4,fp4psif )
+               alphfca = COCAL_ID_lagint_4th_apply(wphi4,fp4alphf)
+               bvxdfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvxdf)
+               bvydfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvydf)
+               bvzdfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvzdf)
        !
                psif4ca  = psifca**4
                select case (trim(id_type))
@@ -1737,7 +1760,10 @@ implicit none
                th4(ii) = thgex_p2(itg0)
                phi4(ii) = phigex_p2(ipg0)
              end do
-       !
+             call COCAL_ID_lagint_4th_weights(r4,rc_p2,wr4)
+             call COCAL_ID_lagint_4th_weights(th4,thc_p2,wth4)
+             call COCAL_ID_lagint_4th_weights(phi4,phic_p2,wphi4)
+          !
              do kk = 1, 4
                ipg0 = ip0 + kk - 1
                do jj = 1, 4
@@ -1759,41 +1785,41 @@ implicit none
                    fr4ayz(ii)  =  ayz_p2(irgex,itgex,ipgex)
                    fr4azz(ii)  =  azz_p2(irgex,itgex,ipgex)
                  end do
-                 ft4psi(jj)  = COCAL_ID_lagint_4th(r4,fr4psi ,rc_p2)
-                 ft4alph(jj) = COCAL_ID_lagint_4th(r4,fr4alph,rc_p2)
-                 ft4bvxd(jj) = COCAL_ID_lagint_4th(r4,fr4bvxd,rc_p2)
-                 ft4bvyd(jj) = COCAL_ID_lagint_4th(r4,fr4bvyd,rc_p2)
-                 ft4bvzd(jj) = COCAL_ID_lagint_4th(r4,fr4bvzd,rc_p2)
-                 ft4axx(jj)  = COCAL_ID_lagint_4th(r4,fr4axx ,rc_p2)
-                 ft4axy(jj)  = COCAL_ID_lagint_4th(r4,fr4axy ,rc_p2)
-                 ft4axz(jj)  = COCAL_ID_lagint_4th(r4,fr4axz ,rc_p2)
-                 ft4ayy(jj)  = COCAL_ID_lagint_4th(r4,fr4ayy ,rc_p2)
-                 ft4ayz(jj)  = COCAL_ID_lagint_4th(r4,fr4ayz ,rc_p2)
-                 ft4azz(jj)  = COCAL_ID_lagint_4th(r4,fr4azz ,rc_p2)
+                 ft4psi(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4psi )
+                 ft4alph(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4alph)
+                 ft4bvxd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvxd)
+                 ft4bvyd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvyd)
+                 ft4bvzd(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvzd)
+                 ft4axx(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axx )
+                 ft4axy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axy )
+                 ft4axz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4axz )
+                 ft4ayy(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayy )
+                 ft4ayz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4ayz )
+                 ft4azz(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4azz )
                end do
-               fp4psi(kk)  = COCAL_ID_lagint_4th(th4,ft4psi ,thc_p2)
-               fp4alph(kk) = COCAL_ID_lagint_4th(th4,ft4alph,thc_p2)
-               fp4bvxd(kk) = COCAL_ID_lagint_4th(th4,ft4bvxd,thc_p2)
-               fp4bvyd(kk) = COCAL_ID_lagint_4th(th4,ft4bvyd,thc_p2)
-               fp4bvzd(kk) = COCAL_ID_lagint_4th(th4,ft4bvzd,thc_p2)
-               fp4axx(kk)  = COCAL_ID_lagint_4th(th4,ft4axx ,thc_p2)
-               fp4axy(kk)  = COCAL_ID_lagint_4th(th4,ft4axy ,thc_p2)
-               fp4axz(kk)  = COCAL_ID_lagint_4th(th4,ft4axz ,thc_p2)
-               fp4ayy(kk)  = COCAL_ID_lagint_4th(th4,ft4ayy ,thc_p2)
-               fp4ayz(kk)  = COCAL_ID_lagint_4th(th4,ft4ayz ,thc_p2)
-               fp4azz(kk)  = COCAL_ID_lagint_4th(th4,ft4azz ,thc_p2)
+               fp4psi(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4psi )
+               fp4alph(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4alph)
+               fp4bvxd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvxd)
+               fp4bvyd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvyd)
+               fp4bvzd(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvzd)
+               fp4axx(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axx )
+               fp4axy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axy )
+               fp4axz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4axz )
+               fp4ayy(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayy )
+               fp4ayz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4ayz )
+               fp4azz(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4azz )
              end do
-             psica  = COCAL_ID_lagint_4th(phi4,fp4psi ,phic_p2)
-             alphca = COCAL_ID_lagint_4th(phi4,fp4alph,phic_p2)
-             bvxdca = COCAL_ID_lagint_4th(phi4,fp4bvxd,phic_p2)
-             bvydca = COCAL_ID_lagint_4th(phi4,fp4bvyd,phic_p2)
-             bvzdca = COCAL_ID_lagint_4th(phi4,fp4bvzd,phic_p2)
-             axx    = COCAL_ID_lagint_4th(phi4,fp4axx ,phic_p2)
-             axy    = COCAL_ID_lagint_4th(phi4,fp4axy ,phic_p2)
-             axz    = COCAL_ID_lagint_4th(phi4,fp4axz ,phic_p2)
-             ayy    = COCAL_ID_lagint_4th(phi4,fp4ayy ,phic_p2)
-             ayz    = COCAL_ID_lagint_4th(phi4,fp4ayz ,phic_p2)
-             azz    = COCAL_ID_lagint_4th(phi4,fp4azz ,phic_p2)
+             psica  = COCAL_ID_lagint_4th_apply(wphi4,fp4psi )
+             alphca = COCAL_ID_lagint_4th_apply(wphi4,fp4alph)
+             bvxdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvxd)
+             bvydca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvyd)
+             bvzdca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvzd)
+             axx    = COCAL_ID_lagint_4th_apply(wphi4,fp4axx )
+             axy    = COCAL_ID_lagint_4th_apply(wphi4,fp4axy )
+             axz    = COCAL_ID_lagint_4th_apply(wphi4,fp4axz )
+             ayy    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayy )
+             ayz    = COCAL_ID_lagint_4th_apply(wphi4,fp4ayz )
+             azz    = COCAL_ID_lagint_4th_apply(wphi4,fp4azz )
  
              psi4ca = psica**4
              call COCAL_ID_interpo_lag4th_2Dsurf(rsca_p2,rs_p2,thc_p2,phic_p2)
@@ -1803,12 +1829,13 @@ implicit none
                do irg = 0, nrf_p2+1
                  if (rcf_p2.lt.rgex_p2(irg).and.rcf_p2.ge.rgex_p2(irg-1)) ir0 = min0(irg-2,nrf_p2-3)
                end do
-       !
+          !
                do ii = 1, 4
                  irg0 = ir0 + ii - 1
                  r4(ii) = rgex_p2(irg0)
                end do
-       !
+               call COCAL_ID_lagint_4th_weights(r4,rcf_p2,wr4)
+          !
                do kk = 1, 4
                  ipg0 = ip0 + kk - 1
                  do jj = 1, 4
@@ -1838,65 +1865,65 @@ implicit none
                      fr4bvydf(ii) = bvydf_p2(irgex,itgex,ipgex)
                      fr4bvzdf(ii) = bvzdf_p2(irgex,itgex,ipgex)
                    end do
-                   ft4emd(jj)   = COCAL_ID_lagint_4th(r4,fr4emd  ,rcf_p2)
+                   ft4emd(jj)   = COCAL_ID_lagint_4th_apply(wr4,fr4emd  )
                    select case (trim(id_type))
                      case ("IR","SP")
-                        ft4vepxf(jj) = COCAL_ID_lagint_4th(r4,fr4vepxf,rcf_p2) !Unique to IR, SP has 3 more
-                        ft4vepyf(jj) = COCAL_ID_lagint_4th(r4,fr4vepyf,rcf_p2) !Unique to IR, SP has 3 more
-                        ft4vepzf(jj) = COCAL_ID_lagint_4th(r4,fr4vepzf,rcf_p2) !Unique to IR, SP has 3 more
+                        ft4vepxf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepxf) !Unique to IR, SP has 3 more
+                        ft4vepyf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepyf) !Unique to IR, SP has 3 more
+                        ft4vepzf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4vepzf) !Unique to IR, SP has 3 more
                         select case (trim(id_type))
                           case ("SP")
-                            ft4wxspf(jj) = COCAL_ID_lagint_4th(r4,fr4wxspf,rcf_p2)
-                            ft4wyspf(jj) = COCAL_ID_lagint_4th(r4,fr4wyspf,rcf_p2)
-                            ft4wzspf(jj) = COCAL_ID_lagint_4th(r4,fr4wzspf,rcf_p2)
+                            ft4wxspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wxspf)
+                            ft4wyspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wyspf)
+                            ft4wzspf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4wzspf)
                         end select
                    end select
  
-                   ft4psif(jj)  = COCAL_ID_lagint_4th(r4,fr4psif ,rcf_p2)
-                   ft4alphf(jj) = COCAL_ID_lagint_4th(r4,fr4alphf,rcf_p2)
-                   ft4bvxdf(jj) = COCAL_ID_lagint_4th(r4,fr4bvxdf,rcf_p2)
-                   ft4bvydf(jj) = COCAL_ID_lagint_4th(r4,fr4bvydf,rcf_p2)
-                   ft4bvzdf(jj) = COCAL_ID_lagint_4th(r4,fr4bvzdf,rcf_p2)
+                   ft4psif(jj)  = COCAL_ID_lagint_4th_apply(wr4,fr4psif )
+                   ft4alphf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4alphf)
+                   ft4bvxdf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvxdf)
+                   ft4bvydf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvydf)
+                   ft4bvzdf(jj) = COCAL_ID_lagint_4th_apply(wr4,fr4bvzdf)
                  end do
-                 fp4emd(kk)   = COCAL_ID_lagint_4th(th4,ft4emd  ,thc_p2)
+                 fp4emd(kk)   = COCAL_ID_lagint_4th_apply(wth4,ft4emd  )
                  select case (trim(id_type))
                     case ("IR","SP")
-                      fp4vepxf(kk) = COCAL_ID_lagint_4th(th4,ft4vepxf,thc_p2) !Unique to iR, SP has 3 more
-                      fp4vepyf(kk) = COCAL_ID_lagint_4th(th4,ft4vepyf,thc_p2) !Unique to iR, SP has 3 more
-                      fp4vepzf(kk) = COCAL_ID_lagint_4th(th4,ft4vepzf,thc_p2) !Unique to iR, SP has 3 more
+                      fp4vepxf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepxf) !Unique to iR, SP has 3 more
+                      fp4vepyf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepyf) !Unique to iR, SP has 3 more
+                      fp4vepzf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4vepzf) !Unique to iR, SP has 3 more
                       select case (trim(id_type))
                         case ("SP")
-                          fp4wxspf(kk) = COCAL_ID_lagint_4th(th4,ft4wxspf,thc_p2)
-                          fp4wyspf(kk) = COCAL_ID_lagint_4th(th4,ft4wyspf,thc_p2)
-                          fp4wzspf(kk) = COCAL_ID_lagint_4th(th4,ft4wzspf,thc_p2)
+                          fp4wxspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wxspf)
+                          fp4wyspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wyspf)
+                          fp4wzspf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4wzspf)
                       end select
                   end select
  
-                 fp4psif(kk)  = COCAL_ID_lagint_4th(th4,ft4psif ,thc_p2)
-                 fp4alphf(kk) = COCAL_ID_lagint_4th(th4,ft4alphf,thc_p2)
-                 fp4bvxdf(kk) = COCAL_ID_lagint_4th(th4,ft4bvxdf,thc_p2)
-                 fp4bvydf(kk) = COCAL_ID_lagint_4th(th4,ft4bvydf,thc_p2)
-                 fp4bvzdf(kk) = COCAL_ID_lagint_4th(th4,ft4bvzdf,thc_p2)
+                 fp4psif(kk)  = COCAL_ID_lagint_4th_apply(wth4,ft4psif )
+                 fp4alphf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4alphf)
+                 fp4bvxdf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvxdf)
+                 fp4bvydf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvydf)
+                 fp4bvzdf(kk) = COCAL_ID_lagint_4th_apply(wth4,ft4bvzdf)
                end do
-               emdca   = COCAL_ID_lagint_4th(phi4,fp4emd  ,phic_p2)
+               emdca   = COCAL_ID_lagint_4th_apply(wphi4,fp4emd  )
                select case (trim(id_type))
                   case ("IR","SP")
-                    vepxfca = COCAL_ID_lagint_4th(phi4,fp4vepxf,phic_p2) !Unique to IR, SP has 3 more
-                    vepyfca = COCAL_ID_lagint_4th(phi4,fp4vepyf,phic_p2) !Unique to IR, SP has 3 more
-                    vepzfca = COCAL_ID_lagint_4th(phi4,fp4vepzf,phic_p2) !Unique to IR, SP has 3 more
+                    vepxfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepxf) !Unique to IR, SP has 3 more
+                    vepyfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepyf) !Unique to IR, SP has 3 more
+                    vepzfca = COCAL_ID_lagint_4th_apply(wphi4,fp4vepzf) !Unique to IR, SP has 3 more
                     select case (trim(id_type))
                       case ("SP")
-                        wxspfca = COCAL_ID_lagint_4th(phi4,fp4wxspf,phic_p2)
-                        wyspfca = COCAL_ID_lagint_4th(phi4,fp4wyspf,phic_p2)
-                        wzspfca = COCAL_ID_lagint_4th(phi4,fp4wzspf,phic_p2)
+                        wxspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wxspf)
+                        wyspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wyspf)
+                        wzspfca = COCAL_ID_lagint_4th_apply(wphi4,fp4wzspf)
                     end select
                end select
  
-               psifca  = COCAL_ID_lagint_4th(phi4,fp4psif ,phic_p2)
-               alphfca = COCAL_ID_lagint_4th(phi4,fp4alphf,phic_p2)
-               bvxdfca = COCAL_ID_lagint_4th(phi4,fp4bvxdf,phic_p2)
-               bvydfca = COCAL_ID_lagint_4th(phi4,fp4bvydf,phic_p2)
-               bvzdfca = COCAL_ID_lagint_4th(phi4,fp4bvzdf,phic_p2)
+               psifca  = COCAL_ID_lagint_4th_apply(wphi4,fp4psif )
+               alphfca = COCAL_ID_lagint_4th_apply(wphi4,fp4alphf)
+               bvxdfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvxdf)
+               bvydfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvydf)
+               bvzdfca = COCAL_ID_lagint_4th_apply(wphi4,fp4bvzdf)
        !
                psif4ca = psifca**4
                select case (trim(id_type))

@@ -131,14 +131,14 @@ CarpetRegrid2::position_z_1 =   0.0
 CarpetRegrid2::radius_1[1]  =   $xmax/2
 
 CarpetRegrid2::num_levels_2 =   3
-CarpetRegrid2::position_x_2 =  -2.403360820948883E+01
+CarpetRegrid2::position_x_2 =  COCAL_ID::COCAL_ID_cen_x1
 CarpetRegrid2::position_y_2 =   0.0
 CarpetRegrid2::position_z_2 =   0.0
 CarpetRegrid2::radius_2[1]  =   $xmax/2
 CarpetRegrid2::radius_2[2]  =   $xmax/4
 
 CarpetRegrid2::num_levels_3 =   3
-CarpetRegrid2::position_x_3 =   2.403360820948883E+01
+CarpetRegrid2::position_x_3 =   COCAL_ID::COCAL_ID_cen_x2
 CarpetRegrid2::position_y_3 =   0.0
 CarpetRegrid2::position_z_3 =   0.0
 CarpetRegrid2::radius_3[1]  =   $xmax/2
@@ -277,6 +277,8 @@ COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bns/SP_K123
 COCAL_ID::COCAL_ID_read_magnetic_potential = "False"
 COCAL_ID::COCAL_ID_readformat = "20.12"
 COCAL_ID::COCAL_ID_verbose = "True"
+COCAL_ID::COCAL_ID_cen_x1 = -2.403360820948883E+01
+COCAL_ID::COCAL_ID_cen_x2 =  2.403360820948883E+01
 
 
 # Use COCAL as initial data
@@ -398,12 +400,12 @@ VolumeIntegrals_GRMHD::Integration_quantity_keyword[4] = "centerofmass"
 VolumeIntegrals_GRMHD::Integration_quantity_keyword[5] = "one"
 VolumeIntegrals_GRMHD::Integration_quantity_keyword[6] = "restmass"
 
-VolumeIntegrals_GRMHD::volintegral_sphere__center_x_initial         [2] = -2.403360820948883E+01
+VolumeIntegrals_GRMHD::volintegral_sphere__center_x_initial         [2] = COCAL_ID::COCAL_ID_cen_x1
 VolumeIntegrals_GRMHD::volintegral_inside_sphere__radius            [2] =  13.5
 VolumeIntegrals_GRMHD::volintegral_sphere__tracks__amr_centre       [2] =  1
 VolumeIntegrals_GRMHD::amr_centre__tracks__volintegral_inside_sphere[2] =  1
 
-VolumeIntegrals_GRMHD::volintegral_sphere__center_x_initial         [4] =  2.403360820948883E+01
+VolumeIntegrals_GRMHD::volintegral_sphere__center_x_initial         [4] =  COCAL_ID::COCAL_ID_cen_x2
 VolumeIntegrals_GRMHD::volintegral_inside_sphere__radius            [4] =  13.5
 VolumeIntegrals_GRMHD::volintegral_sphere__tracks__amr_centre       [4] =  2
 VolumeIntegrals_GRMHD::amr_centre__tracks__volintegral_inside_sphere[4] =  2

@@ -72,17 +72,32 @@ CCTK_KEYWORD COCAL_ID_readformat "Format of the input data"
   "23.15" :: "23.15"
 } "20.12"
 
-CCTK_REAL COCAL_ID_cen_x "X Position of COCAL origin in Cactus coordinates"
+CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
 {
   *:* :: ""
 } 0.0
 
-CCTK_REAL COCAL_ID_cen_y "Y Position of COCAL origin in Cactus coordinates"
+CCTK_REAL COCAL_ID_cen_y1 "Y Position of BNS star 1 for grid centers and diagnostics"
 {
   *:* :: ""
 } 0.0
 
-CCTK_REAL COCAL_ID_cen_z "Z Position of COCAL origin in Cactus coordinates"
+CCTK_REAL COCAL_ID_cen_z1 "Z Position of BNS star 1 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_x2 "X Position of BNS star 2 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_y2 "Y Position of BNS star 2 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_z2 "Z Position of BNS star 2 for grid centers and diagnostics"
 {
   *:* :: ""
 } 0.0

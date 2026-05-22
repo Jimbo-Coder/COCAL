@@ -1,0 +1,11 @@
+    8    p    0    0    0         : nrg_1, sw_L1_iter, sw_sepa, sw_quant, sw_spin
+  1.000000000000000E-00           : rsurf
+  8.257536077803647e-03           : target separation/omega in G=c=Msol=1
+  1.350000000000000e+00           : target rest mass or Madm or compactness
+ +0.000000000000000e+00           : target Sx
+ +0.000000000000000e+00           : target Sy
+ +1.100000000000000e+00           : target Sz
+ +0.000000000000000e+00           : omespx
+ +0.000000000000000e+00           : omespy
+ +1.000000000000000e-01           : omespz
+
