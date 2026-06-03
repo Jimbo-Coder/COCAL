@@ -6,11 +6,13 @@
 #include "Cocal/def_bh_parameter.f90"
 
 #include "Cocal/def_peos_parameter.f90"
+#include "Cocal/def_teos_parameter.f90"
 
 #include "Cocal/def_binary_parameter.f90" 
 #include "Cocal/def_matter_parameter_mpt.f90"
 #include "Cocal/def_binary_parameter_mpt.f90"
 #include "Cocal/def_peos_parameter_mpt.f90"
+#include "Cocal/def_teos_parameter_mpt.f90"
 #include "Cocal/make_char1_array_2d.f90"
 #include "Cocal/make_char2_array_2d.f90"
 #include "Cocal/make_int_array_2d.f90"
@@ -68,6 +70,9 @@
 #include "Cocal/peos_initialize.f90"
 #include "Cocal/peos_q2hprho.f90"
 #include "Cocal/peos_lookup.f90"
+#include "Cocal/teos_initialize.f90"
+#include "Cocal/teos_q2hprho.f90"
+#include "Cocal/teos_lookup.f90"
 
 #include "Cocal/copy_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_1dto2d_mpt.f90"
@@ -112,6 +117,8 @@
 #include "Cocal/copy_def_binary_parameter_to_mpt.f90"
 #include "Cocal/copy_def_peos_parameter_to_mpt.f90"
 #include "Cocal/copy_def_peos_parameter_from_mpt.f90"
+#include "Cocal/copy_def_teos_parameter_to_mpt.f90"
+#include "Cocal/copy_def_teos_parameter_from_mpt.f90"
 #include "Cocal/copy_def_binary_parameter_from_mpt.f90"
 #include "Cocal/IO_input_CF_surf_export.f90"
 #include "Cocal/IO_input_CF_flco_export.f90"
@@ -240,7 +247,11 @@ implicit none
 
   
   call read_parameter_cactus(COCAL_ID_PathToIDf)
-  call COCAL_ID_peos_initialize_cactus(COCAL_ID_PathToIDf)
+  if (COCAL_ID_read_tabulated_eos == 1) then
+     call COCAL_ID_teos_initialize_cactus(COCAL_ID_PathToIDf)
+  else
+     call COCAL_ID_peos_initialize_cactus(COCAL_ID_PathToIDf)
+  end if
   call grid_r
   call grid_theta
   call trig_grav_theta
@@ -703,7 +714,11 @@ implicit none
               emdca = 0.0d0 !NaN fixing condition, pray atmospheric reset fixes things afterwards.
            end if
 
-           call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
+           if (COCAL_ID_read_tabulated_eos == 1) then
+              call COCAL_ID_teos_q2hprho(emdca, hca, preca, rhoca, eneca)
+           else
+              call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
+           end if
            !
 
            if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
@@ -889,9 +904,15 @@ implicit none
      call COCAL_ID_read_parameter_binary_excision_mpt_cactus(impt,COCAL_ID_PathToIDf)
      call COCAL_ID_copy_grid_parameter_binary_excision_to_mpt(impt)
      
-     if (COCAL_ID_verbose == 1) call CCTK_INFO("COCAL_ID_peos_initialize_mpt_cactus")
-     if (impt .le. 2) call COCAL_ID_peos_initialize_mpt_cactus(impt,COCAL_ID_PathToIDf)
-     call COCAL_ID_copy_def_peos_parameter_to_mpt(impt)
+     if (COCAL_ID_read_tabulated_eos == 1) then
+        if (COCAL_ID_verbose == 1) call CCTK_INFO("COCAL_ID_teos_initialize_mpt_cactus")
+        if (impt .le. 2) call COCAL_ID_teos_initialize_mpt_cactus(impt,COCAL_ID_PathToIDf)
+        call COCAL_ID_copy_def_teos_parameter_to_mpt(impt)
+     else
+        if (COCAL_ID_verbose == 1) call CCTK_INFO("COCAL_ID_peos_initialize_mpt_cactus")
+        if (impt .le. 2) call COCAL_ID_peos_initialize_mpt_cactus(impt,COCAL_ID_PathToIDf)
+        call COCAL_ID_copy_def_peos_parameter_to_mpt(impt)
+     end if
    end do
  ! -- Allocate arrays
    if (COCAL_ID_verbose == 1) call CCTK_INFO("Cocal: Allocating local arrays...")
@@ -903,7 +924,11 @@ implicit none
    do impt = 1, nmpt
      call COCAL_ID_copy_grid_parameter_from_mpt(impt)
      call COCAL_ID_copy_grid_parameter_binary_excision_from_mpt(impt)
-     call COCAL_ID_copy_def_peos_parameter_from_mpt(impt)
+     if (COCAL_ID_read_tabulated_eos == 1) then
+        call COCAL_ID_copy_def_teos_parameter_from_mpt(impt)
+     else
+        call COCAL_ID_copy_def_peos_parameter_from_mpt(impt)
+     end if
      call COCAL_ID_coordinate_patch_kit_grav_grid_coc2cac_mpt(igrid)  ! 3:r_surf is used
      call calc_parameter_binary_excision
      call COCAL_ID_copy_grid_parameter_to_mpt(impt)
@@ -2009,7 +2034,11 @@ implicit none
             end if 
          end if
  
-         call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
+         if (COCAL_ID_read_tabulated_eos == 1) then
+            call COCAL_ID_teos_q2hprho(emdca, hca, preca, rhoca, eneca)
+         else
+            call COCAL_ID_peos_q2hprho(emdca, hca, preca, rhoca, eneca)
+         end if
 
          if (bool_lapse) then
             alp(i,j,k) = alphca

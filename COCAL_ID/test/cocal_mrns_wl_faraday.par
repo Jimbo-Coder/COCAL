@@ -73,7 +73,7 @@ HydroBase::initial_Aphi = "zero"
 HydroBase::initial_Bvec = "Cocal"
 
 IO::out_dir = $parfile
-IO::out_fileinfo = "none"
+IO::out_fileinfo = "axis labels"
 IO::parfile_write = "no"
 
 IOBasic::outInfo_every = 1

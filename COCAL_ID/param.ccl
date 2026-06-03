@@ -107,6 +107,10 @@ CCTK_BOOLEAN COCAL_ID_read_magnetic_potential "Whether MRNS_WL reads magnetic po
 
 } "True"
 
+CCTK_BOOLEAN COCAL_ID_read_tabulated_eos "Read tabulated EOS data when converting COCAL enthalpy to hydro variables"
+{
+} "False"
+
 CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
 {
 } "False"
