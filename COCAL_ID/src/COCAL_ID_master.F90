@@ -531,6 +531,7 @@ implicit none
   logical :: outside_fluid
   
   real(8) :: xcac, ycac, zcac ! Cactus coordinates
+  real(8) :: dxcac, dycac, dzcac
   real(8) :: xcoc, ycoc, zcoc, rcoc ! COCAL coordinates
   real(8) :: emdca,  omefca, psica,  alphca, psi4ca, psif4ca
   real(8) :: bvxdca, bvydca, bvzdca, bvxuca, bvyuca, bvzuca
@@ -724,10 +725,38 @@ implicit none
            if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
               if (COCAL_ID_read_magnetic_potential == 1) then
                  if (bool_Avec_Aphi) then
-                    Aphi(i,j,k)   = vaca
-                    Avec(i,j,k,1) = vaxdca
-                    Avec(i,j,k,2) = vaydca
-                    Avec(i,j,k,3) = vazdca
+                    va1 = vaca
+                    vaxd1 = vaxdca
+                    vayd1 = vaydca
+                    vazd1 = vazdca
+                    if (COCAL_ID_offset_AvecAphi == 1) then
+                       dxcac = CCTK_DELTA_SPACE(1)
+                       dycac = CCTK_DELTA_SPACE(2)
+                       dzcac = CCTK_DELTA_SPACE(3)
+
+                       ! IllinoisGRMHD stores Ax(i,j+1/2,k+1/2), Ay(i+1/2,j,k+1/2),
+                       ! Az(i+1/2,j+1/2,k), and Aphi(i+1/2,j+1/2,k+1/2).
+                       call COCAL_ID_gr2cgr_4th_setup(xcac/radi,(ycac+0.5d0*dycac)/radi,(zcac+0.5d0*dzcac)/radi, &
+                            gr_irgex4,gr_itgex4,gr_ipgex4,gr_wr,gr_wth,gr_wphi)
+                       call COCAL_ID_cgr_4th_apply(vaxd, vaxd1, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+
+                       call COCAL_ID_gr2cgr_4th_setup((xcac+0.5d0*dxcac)/radi,ycac/radi,(zcac+0.5d0*dzcac)/radi, &
+                            gr_irgex4,gr_itgex4,gr_ipgex4,gr_wr,gr_wth,gr_wphi)
+                       call COCAL_ID_cgr_4th_apply(vayd, vayd1, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+
+                       call COCAL_ID_gr2cgr_4th_setup((xcac+0.5d0*dxcac)/radi,(ycac+0.5d0*dycac)/radi,zcac/radi, &
+                            gr_irgex4,gr_itgex4,gr_ipgex4,gr_wr,gr_wth,gr_wphi)
+                       call COCAL_ID_cgr_4th_apply(vazd, vazd1, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+
+                       call COCAL_ID_gr2cgr_4th_setup((xcac+0.5d0*dxcac)/radi,(ycac+0.5d0*dycac)/radi,(zcac+0.5d0*dzcac)/radi, &
+                            gr_irgex4,gr_itgex4,gr_ipgex4,gr_wr,gr_wth,gr_wphi)
+                       call COCAL_ID_cgr_4th_apply(va, va1, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                    end if
+
+                    Aphi(i,j,k) = va1
+                    Avec(i,j,k,1) = vaxd1
+                    Avec(i,j,k,2) = vayd1
+                    Avec(i,j,k,3) = vazd1
                  end if
               else if (COCAL_ID_read_magnetic_potential == 0) then
                  fxyd1 = fxydca/radi
