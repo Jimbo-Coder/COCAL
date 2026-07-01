@@ -41,19 +41,9 @@ EXTENDS keyword initial_Aphi
   "Cocal" :: "Cocal provides the initial_Aphi"
 }
 
-EXTENDS keyword initial_temperature
-{
-  "Cocal" :: "Cocal provides the inital_temperature"
-}
-
-EXTENDS keyword initial_Y_e
-{
-  "Cocal" :: "Cocal provides the initial Baryon fraction"
-}
-
 private:
 
-CCTK_STRING COCAL_ID_PathToID "Path to Cocal RNS/BNS initial data"
+CCTK_STRING COCAL_ID_PathToID "Path to Cocal initial data"
 {
   ".+" :: "Pathname"
 } "."
@@ -65,12 +55,6 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
   "MRNS_WL" :: "Magnetized Waveless"
 } "RNS_CF"
 
-
-CCTK_KEYWORD COCAL_ID_readformat "Format of the input data"
-{
-  "20.12" :: "20.12"
-  "23.15" :: "23.15"
-} "20.12"
 
 CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
 {

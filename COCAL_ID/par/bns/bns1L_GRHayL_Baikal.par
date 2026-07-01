@@ -1,4 +1,4 @@
-# GRHayLib (ILGRMHD) + Baikal BNS 1L baseline
+# GRHayLHD + Baikal BNS 1L baseline
 $itlast=4
 $final_time=1000
 $xmax=64.0
@@ -10,6 +10,7 @@ ActiveThorns = "
   ADMBase
   ADMCoupling
   ADMMacros
+  AHFinderDirect
   AEILocalInterp
   #AngularMom
   Baikal
@@ -45,7 +46,6 @@ ActiveThorns = "
   NaNChecker
   QuasiLocalMeasures
   Slab
-  smallbPoynET
   SpaceMask
   SphericalSurface
   StaticConformal
@@ -65,7 +65,7 @@ ActiveThorns = "
   VolumeIntegrals_GRMHD
   VolumeIntegrals_vacuum
 
-  IllinoisGRMHD
+  GRHayLHD
   GRHayLib
   #GRHayLID
 
@@ -121,6 +121,13 @@ CoordBase::zmin = -CoordBase::xmax  #-240.0
 CoordBase::dx   =  $dx # exponent is number of ref levels -1, gives that value at the most refined level.
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
+
+#Initial data
+# BNS 1L SP_K123.6_000
+COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bns/SP_K123.6_000"
+COCAL_ID::COCAL_ID_verbose = "True"
+COCAL_ID::COCAL_ID_cen_x1 = -2.403360820948883E+01
+COCAL_ID::COCAL_ID_cen_x2 =  2.403360820948883E+01
 
 CarpetRegrid2::regrid_every =   0
 CarpetRegrid2::num_centres  =   3
@@ -240,7 +247,7 @@ Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylSc
 
 NaNChecker::check_every = 32
 NaNChecker::action_if_found = "terminate" #"terminate", "just warn", "abort"
-NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel HydroBase::Bvec"
+NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel"
 
 # Hydro paramters
 
@@ -264,21 +271,12 @@ ADMBase::dtshift_evolution_method= "Baikal"
 #----------------------Baikal configuration-----------------------------
 Baikal::diss_strength = 0.2
 Baikal::eta           = 1.0/2.8    # M_ADM (from LORENE)
+Baikal::lapse_floor   = 1e-8       # protect post-collapse black-hole regions
 
 
 
 # init parameters
 InitBase::initial_data_setup_method = "init_all_levels"
-
-
-#Initial data
-# BNS 1L SP_K123.6_000
-COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bns/SP_K123.6_000"
-COCAL_ID::COCAL_ID_read_magnetic_potential = "False"
-COCAL_ID::COCAL_ID_readformat = "20.12"
-COCAL_ID::COCAL_ID_verbose = "True"
-COCAL_ID::COCAL_ID_cen_x1 = -2.403360820948883E+01
-COCAL_ID::COCAL_ID_cen_x2 =  2.403360820948883E+01
 
 
 # Use COCAL as initial data
@@ -290,9 +288,9 @@ HydroBase::initial_hydro         = "Cocal"
 HydroBase::initial_Y_e         = "none"
 HydroBase::initial_temperature = "none"
 HydroBase::initial_entropy     = "none"
-HydroBase::initial_Avec        = "zero"
-HydroBase::initial_Aphi        = "zero"
-HydroBase::initial_Bvec          = "zero"
+HydroBase::initial_Avec        = "none"
+HydroBase::initial_Aphi        = "none"
+HydroBase::initial_Bvec        = "none"
 ADMBase::initial_dtlapse         = "zero"
 ADMBase::initial_dtshift         = "zero"
 
@@ -321,12 +319,12 @@ ADMBase::shift_timelevels         = 3
 #EOS_Omni::hybrid_rho          = [3.15519e-04, 8.11939e-04, 1.62003e-03]
 
 
-#----------------------IllinoisGRMHD configuration----------------------
+#----------------------GRHayLHD configuration----------------------
 # Parameters of thorn Convert_to_HydroBase (implementing Convert_to_HydroBase)
-IllinoisGRMHD::Convert_to_HydroBase_every = $out_every
+GRHayLHD::Convert_to_HydroBase_every = $out_every
 
 #Spherical surface
-SphericalSurface::nsurfaces = 4
+SphericalSurface::nsurfaces = 5
 SphericalSurface::maxntheta = 39
 SphericalSurface::maxnphi = 76
 
@@ -364,9 +362,42 @@ SphericalSurface::set_spherical[3] = yes
 SphericalSurface::radius      [3] = 15.0
 SphericalSurface::name        [3] = "waveextract surface at 15"
 
+SphericalSurface::ntheta      [4] = 39
+SphericalSurface::nphi        [4] = 76
+SphericalSurface::nghoststheta[4] = 2
+SphericalSurface::nghostsphi  [4] = 2
+SphericalSurface::name        [4] = "apparent horizon"
+
+#Apparent horizon finder
+
+AHFinderDirect::N_horizons = 1
+AHFinderDirect::find_every = $out_every2d
+AHFinderDirect::output_BH_diagnostics = yes
+AHFinderDirect::output_h_every = $out_every2d
+AHFinderDirect::output_initial_guess = no
+AHFinderDirect::output_Theta_every = 0
+AHFinderDirect::output_mean_curvature_every = 0
+AHFinderDirect::run_at_CCTK_POST_RECOVER_VARIABLES = no
+
+AHFinderDirect::geometry_interpolator_name = "Lagrange polynomial interpolation"
+AHFinderDirect::geometry_interpolator_pars = "order=4"
+AHFinderDirect::surface_interpolator_name = "Lagrange polynomial interpolation"
+AHFinderDirect::surface_interpolator_pars = "order=4"
+
+AHFinderDirect::initial_guess_method[1] = "coordinate sphere"
+AHFinderDirect::origin_x[1] = 0.0
+AHFinderDirect::origin_y[1] = 0.0
+AHFinderDirect::origin_z[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__x_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__y_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__z_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__radius[1] = 2.0
+AHFinderDirect::max_allowable_horizon_radius[1] = 20.0
+AHFinderDirect::which_surface_to_store_info_by_name[1] = "apparent horizon"
+
 #QuasiLocalMeasures
 
-QuasiLocalMeasures::num_surfaces   = 4
+QuasiLocalMeasures::num_surfaces   = 5
 QuasiLocalMeasures::spatial_order  = 4
 QuasiLocalMeasures::interpolator = "Lagrange polynomial interpolation"
 QuasiLocalMeasures::interpolator_options = "order=4"
@@ -382,6 +413,9 @@ QuasiLocalMeasures::surface_index[2] = 2
 
 QuasiLocalMeasures::surface_name[3] = "waveextract surface at 15"
 QuasiLocalMeasures::surface_index[3] = 3
+
+QuasiLocalMeasures::surface_name[4] = "apparent horizon"
+QuasiLocalMeasures::surface_index[4] = 4
 
 
 # Volume Integrals 
@@ -480,17 +514,19 @@ GRHayLib::calc_primitive_guess        = yes
 # Scalar output
 IOScalar::outScalar_every    = $out_every
 IOScalar::one_file_per_group = "yes"
+IOScalar::all_reductions_in_one_file = "yes"
 IOScalar::outScalar_reductions = "norm1 norm2 norm_inf sum maximum minimum"
 IOScalar::outScalar_vars     = "
  HydroBase::rho
  HydroBase::press
  HydroBase::vel
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::shift
- Baikal::HGF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
- Baikal::MU0GF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
+ Baikal::HGF
+ Baikal::MU0GF
+ Baikal::MU1GF
+ Baikal::MU2GF
  Carpet::timing{reductions='average'}
 "
 CarpetIOHDF5::checkpoint                  = yes
@@ -529,7 +565,6 @@ CarpetIOASCII::out1D_vars         = "
  HydroBase::vel
  HydroBase::press
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::metric
  ADMBase::curv
@@ -546,7 +581,6 @@ CarpetIOHDF5::out2D_vars = "
  HydroBase::vel
  HydroBase::press
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::shift
  ADMBase::metric
@@ -561,7 +595,7 @@ CarpetIOHDF5::out2D_vars = "
 #AngularMom::TrKVarString    = "Baikal::trKGF"
 #AngularMom::ConFacVarString = "Baikal::cfGF"
 #AngularMom::LapseVarString  = "Baikal::alphaGF"
-#AngularMom::StildeVarString = "IllinoisGRMHD::Stildex"
+#AngularMom::StildeVarString = "GRHayLHD::Stildex"
 #AngularMom::angmom_verbose = "yes"
 #
 #AngularMom::angmom_r_outer[0] = 0.0

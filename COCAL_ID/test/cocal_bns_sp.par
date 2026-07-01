@@ -56,7 +56,6 @@ HydroBase::timelevels = 1
 SpaceMask::use_mask = "yes"
 
 COCAL_ID::COCAL_ID_PathToID = "../../../arrangements/COCAL/COCAL_ID/test/test_InitialData/bns_sp"
-COCAL_ID::COCAL_ID_readformat = "20.12"
 COCAL_ID::COCAL_ID_verbose = "False"
 
 ADMBase::initial_data = "CocalBNS"

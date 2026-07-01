@@ -1,5 +1,7 @@
 # MRNS (magnetized waveless) + Baikal 1Layer (test grid)
 $out_every=64
+$out_every2d=64
+$out_every3d=64
 $xmax=32.0
 ActiveThorns = "
   ADMBase
@@ -46,6 +48,7 @@ ActiveThorns = "
   StaticConformal
   SummationByParts
   SymBase
+  SystemStatistics
   SystemTopology
   TerminationTrigger
   TGRtensor
@@ -83,7 +86,7 @@ TerminationTrigger::termination_file = "TerminationTrigger.txt"
 TerminationTrigger::termination_from_file   = "yes"
 TerminationTrigger::create_termination_file = "yes"
 
-TimerReport::out_every    = 4096
+TimerReport::out_every    = $out_every
 TimerReport::out_filename = "TimerReport"
 TimerReport::output_all_timers          = "yes"
 TimerReport::output_all_timers_together = "yes"
@@ -145,7 +148,7 @@ CCE_Export::radius[0]    = 0.9*$xmax
 #CCE_Export::radius[2]    = 100.00
 #CCE_Export::radius[3]    = 200.00
 #CCE_Export::radius[4]    = 220.00
-CCE_Export::out_every    = 64
+CCE_Export::out_every    = $out_every2d
 
 
 #ReflectionSymmetry::reflection_x = "no"
@@ -182,7 +185,7 @@ CarpetLib::poison_new_memory = "yes"
 CarpetLib::poison_value      = 114
 CarpetLib::support_staggered_operators = "yes"
 
-Carpet::output_timers_every = 64
+Carpet::output_timers_every = $out_every
 
 # system specific Carpet paramters
 Carpet::max_refinement_levels    = 10
@@ -204,12 +207,14 @@ Multipole::l_max                         = 4
 Multipole::nphi                          = 240
 Multipole::nradii                        = 1
 Multipole::ntheta                        = 120
-Multipole::out_every                     = 64
+Multipole::out_every                     = $out_every2d
 Multipole::output_ascii                  = yes
 Multipole::output_hdf5                   = yes
 Multipole::radius[0]                     = 0.9*$xmax
 
 Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylScal4::Psi4i' name='psi4'}"
+
+smallbPoynET::smallbPoynET_compute_every = $out_every
 
 # check all physical variables for NaNs
 #  This can save you computing time, so it's not a bad idea to do this
@@ -217,7 +222,7 @@ Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylSc
 
 NaNChecker::check_every = 32
 NaNChecker::action_if_found = "terminate" #"terminate", "just warn", "abort"
-NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel HydroBase::Bvec"
+NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel HydroBase::Bvec HydroBase::Avec HydroBase::Aphi"
 
 # Hydro paramters
 
@@ -261,7 +266,6 @@ COCAL_ID::COCAL_ID_read_magnetic_potential = "True"
 # [RNS_WL, RNS_CF, MRNS_WL]
 COCAL_ID::COCAL_ID_rnstype = "MRNS_WL"
 
-COCAL_ID::COCAL_ID_readformat = "20.12"
 
 
 # Use TOV as initial data
@@ -431,7 +435,7 @@ IO::out_dir             = ${parfile}
 IO::out_mode            = "onefile"
 
 # Some screen output
-IOBasic::outInfo_every = 64
+IOBasic::outInfo_every = $out_every
 IOBasic::outInfo_vars  = "Carpet::physical_time_per_hour HydroBase::rho{reductions='maximum'} Baikal::HGF{reductions='maximum'}"
 
 #---------GRHayLib---------
@@ -467,6 +471,7 @@ GRHayLib::calc_primitive_guess        = yes
 # Scalar output
 IOScalar::outScalar_every    = $out_every
 IOScalar::one_file_per_group = "yes"
+IOScalar::all_reductions_in_one_file = "yes"
 IOScalar::outScalar_reductions = "norm1 norm2 norm_inf sum maximum minimum"
 IOScalar::outScalar_vars     = "
  HydroBase::rho
@@ -474,10 +479,15 @@ IOScalar::outScalar_vars     = "
  HydroBase::vel
  HydroBase::eps
  HydroBase::Bvec
+ HydroBase::Avec
+ HydroBase::Aphi
  ADMBase::lapse
  ADMBase::shift
- Baikal::HGF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
- Baikal::MU0GF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
+ Baikal::HGF
+ Baikal::MU0GF
+ Baikal::MU1GF
+ Baikal::MU2GF
+ smallbPoynET::smallbPoynETGFs
  Carpet::timing{reductions='average'}
  #VolumeIntegrals_vacuum::MADM_GFtest
 "
@@ -518,29 +528,35 @@ CarpetIOASCII::out1D_vars         = "
  HydroBase::press
  HydroBase::eps
  HydroBase::Bvec
+ HydroBase::Avec
+ HydroBase::Aphi
  ADMBase::lapse
  ADMBase::metric
  ADMBase::curv
  Baikal::HGF
  Baikal::MU0GF
+ smallbPoynET::smallbPoynETGFs
  #VolumeIntegrals_vacuum::MADM_GFtest
 "
 
 # 2D HDF5 output
 CarpetIOHDF5::output_buffer_points = "no"
 
-CarpetIOHDF5::out2D_every = $out_every
+CarpetIOHDF5::out2D_every = $out_every2d
 CarpetIOHDF5::out2D_vars = "
  HydroBase::rho
  HydroBase::vel
  HydroBase::press
  HydroBase::eps
  HydroBase::Bvec
+ HydroBase::Avec
+ HydroBase::Aphi
  ADMBase::lapse
  ADMBase::shift
  ADMBase::metric
  Baikal::HGF
  Baikal::MU0GF
+ smallbPoynET::smallbPoynETGFs
  #VolumeIntegrals_vacuum::MADM_GFtest
  "
 

@@ -58,7 +58,6 @@ SpaceMask::use_mask = "yes"
 COCAL_ID::COCAL_ID_PathToID = "../../../arrangements/COCAL/COCAL_ID/test/test_InitialData/mrns_wl"
 COCAL_ID::COCAL_ID_rnstype = "MRNS_WL"
 COCAL_ID::COCAL_ID_read_magnetic_potential = "False"
-COCAL_ID::COCAL_ID_readformat = "20.12"
 COCAL_ID::COCAL_ID_verbose = "False"
 
 ADMBase::initial_data = "CocalRNS"

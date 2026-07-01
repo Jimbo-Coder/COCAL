@@ -297,6 +297,7 @@ EinsteinAnalysis/CCE_Export
 EinsteinAnalysis/Multipole
 EinsteinAnalysis/QuasiLocalMeasures
 EinsteinAnalysis/WeylScal4
+EinsteinAnalysis/AHFinderDirect
 
 # EinsteinBase
 !TARGET   = $ARR
@@ -308,7 +309,9 @@ EinsteinAnalysis/WeylScal4
 EinsteinBase/ADMBase
 EinsteinBase/ADMCoupling        # deprecated
 EinsteinBase/ADMMacros          # deprecated
+EinsteinBase/Constants
 EinsteinBase/CoordGauge
+EinsteinBase/EOS_Base
 EinsteinBase/HydroBase
 EinsteinBase/StaticConformal
 EinsteinBase/TmunuBase
@@ -320,7 +323,10 @@ EinsteinBase/TmunuBase
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinEOS/EOS_Hybrid
+EinsteinEOS/EOS_IdealFluid
 EinsteinEOS/EOS_Omni
+EinsteinEOS/EOS_Polytrope
 
 # EinsteinEvolve
 !TARGET   = $ARR
@@ -329,6 +335,8 @@ EinsteinEOS/EOS_Omni
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinEvolve/GRHydro
+EinsteinEvolve/GRHydro_InitData
 EinsteinEvolve/NewRad
 
 # EinsteinExact
@@ -456,6 +464,8 @@ GRHayL/GRHayLib
 !REPO_PATH= $2
 !CHECKOUT =
 GRHayLET/IllinoisGRMHD
+GRHayLET/GRHayLHD
+GRHayLET/GRHayLID
 
 !TARGET   = $ARR
 !TYPE     = git
@@ -607,3 +617,4 @@ WVUThorns_Diagnostics/VolumeIntegrals_vacuum
 !TYPE     = ignore
 !CHECKOUT =
 COCAL/COCAL_ID
+#NSTools/ReduceLocTracker
