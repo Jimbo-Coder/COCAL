@@ -129,8 +129,15 @@ COCAL_ID::COCAL_ID_verbose = "True"
 COCAL_ID::COCAL_ID_cen_x1 = -2.403360820948883E+01
 COCAL_ID::COCAL_ID_cen_x2 =  2.403360820948883E+01
 
-CarpetRegrid2::regrid_every =   0
+CarpetRegrid2::regrid_every =  64
 CarpetRegrid2::num_centres  =   3
+CarpetRegrid2::movement_threshold_2 = 1.0
+CarpetRegrid2::movement_threshold_3 = 1.0
+CarpetRegrid2::freeze_unaligned_levels = "yes"
+CarpetRegrid2::freeze_unaligned_parent_levels = "yes"
+CarpetRegrid2::ensure_proper_nesting   = "yes"
+CarpetRegrid2::snap_to_coarse          = "yes"
+Carpet::refinement_centering           = "vertex"
 CarpetRegrid2::num_levels_1 =   2
 CarpetRegrid2::position_x_1 =   0.0
 CarpetRegrid2::position_y_1 =   0.0
@@ -494,7 +501,7 @@ GRHayLib::gamma_ppoly_in              = [2.0]
 
 GRHayLib::evolve_temperature          = no
 GRHayLib::con2prim_routine            = "Palenzuela1D"
-GRhayLib::con2prim_backup_routines[0] = "Newman1D"
+GRHayLib::con2prim_backup_routines[0] = "Newman1D"
 GRHayLib::rho_b_atm                   = 1e-12
 GRHayLib::rho_b_min                   = 1e-12
 GRHayLib::rho_b_max                   = 0.004
