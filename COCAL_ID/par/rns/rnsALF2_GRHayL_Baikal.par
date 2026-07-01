@@ -1,4 +1,4 @@
-# GRHayLib (ILGRMHD) + Baikal 1Layer (magnetized)
+# GRHayLHD + Baikal RNS 1Layer baseline
 $itlast=4
 $out_every=1
 $out_every2d=64
@@ -42,7 +42,6 @@ ActiveThorns = "
   NaNChecker
   QuasiLocalMeasures
   Slab
-  smallbPoynET
   SpaceMask
   SphericalSurface
   StaticConformal
@@ -62,7 +61,7 @@ ActiveThorns = "
   VolumeIntegrals_GRMHD
   VolumeIntegrals_vacuum
 
-  IllinoisGRMHD
+  GRHayLHD
   GRHayLib
   #GRHayLID
 
@@ -225,7 +224,7 @@ Multipole::variables                     = "WeylScal4::Psi4r{sw=-2 cmplx='WeylSc
 
 NaNChecker::check_every = 32
 NaNChecker::action_if_found = "terminate" #"terminate", "just warn", "abort"
-NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel HydroBase::Bvec"
+NaNChecker::check_vars = "ADMBase::metric ADMBase::lapse ADMBase::shift HydroBase::rho HydroBase::eps HydroBase::press HydroBase::vel"
 
 # Hydro paramters
 
@@ -262,13 +261,11 @@ InitBase::initial_data_setup_method = "init_some_levels"
 #MWL: /anvil/projects/x-mca99s008/coc2cac_IDs/rns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6
 #COCAL_ID::PathToID = "/anvil/projects/x-mca99s008/coc2cac_IDs/rns/rnsH2_ALF2_WL_BBB_sol12"
 COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/rns/rnsH3_ALF2_CF_M1.4_jbxz_sol28"
-COCAL_ID::COCAL_ID_read_magnetic_potential = "False"
 
 #Type of ID
 # [RNS_WL, RNS_CF, MRNS_WL]
 COCAL_ID::COCAL_ID_rnstype = "RNS_CF"
 
-COCAL_ID::COCAL_ID_readformat = "20.12"
 
 
 # Use TOV as initial data
@@ -280,9 +277,9 @@ HydroBase::initial_hydro         = "Cocal"
 HydroBase::initial_Y_e         = "none"
 HydroBase::initial_temperature = "none"
 HydroBase::initial_entropy     = "none"
-HydroBase::initial_Avec        = "zero"
-HydroBase::initial_Aphi        = "zero"
-HydroBase::initial_Bvec          = "zero"
+HydroBase::initial_Avec        = "none"
+HydroBase::initial_Aphi        = "none"
+HydroBase::initial_Bvec        = "none"
 ADMBase::initial_dtlapse         = "zero"
 ADMBase::initial_dtshift         = "zero"
 
@@ -311,9 +308,9 @@ ADMBase::shift_timelevels         = 3
 #EOS_Omni::hybrid_rho          = [3.15519e-04, 8.11939e-04, 1.62003e-03]
 
 
-#----------------------IllinoisGRMHD configuration----------------------
+#----------------------GRHayLHD configuration----------------------
 # Parameters of thorn Convert_to_HydroBase (implementing Convert_to_HydroBase)
-IllinoisGRMHD::Convert_to_HydroBase_every = $out_every
+GRHayLHD::Convert_to_HydroBase_every = $out_every
 
 #Spherical surface
 SphericalSurface::nsurfaces = 4
@@ -463,17 +460,19 @@ GRHayLib::calc_primitive_guess        = yes
 # Scalar output
 IOScalar::outScalar_every    = $out_every
 IOScalar::one_file_per_group = "yes"
+IOScalar::all_reductions_in_one_file = "yes"
 IOScalar::outScalar_reductions = "norm1 norm2 norm_inf sum maximum minimum"
 IOScalar::outScalar_vars     = "
  HydroBase::rho
  HydroBase::press
  HydroBase::vel
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::shift
- Baikal::HGF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
- Baikal::MU0GF{reductions='norm1 norm2 maximum minimum norm_inf sum_abs_squared'}
+ Baikal::HGF
+ Baikal::MU0GF
+ Baikal::MU1GF
+ Baikal::MU2GF
  Carpet::timing{reductions='average'}
 "
 CarpetIOHDF5::checkpoint                  = yes
@@ -512,7 +511,6 @@ CarpetIOASCII::out1D_vars         = "
  HydroBase::vel
  HydroBase::press
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::metric
  ADMBase::curv
@@ -529,7 +527,6 @@ CarpetIOHDF5::out2D_vars = "
  HydroBase::vel
  HydroBase::press
  HydroBase::eps
- HydroBase::Bvec
  ADMBase::lapse
  ADMBase::shift
  ADMBase::metric
@@ -544,7 +541,7 @@ CarpetIOHDF5::out2D_vars = "
 #AngularMom::TrKVarString    = "Baikal::trKGF"
 #AngularMom::ConFacVarString = "Baikal::cfGF"
 #AngularMom::LapseVarString  = "Baikal::alphaGF"
-#AngularMom::StildeVarString = "IllinoisGRMHD::Stildex"
+#AngularMom::StildeVarString = "GRHayLHD::Stildex"
 #AngularMom::angmom_verbose = "yes"
 #
 #AngularMom::angmom_r_outer[0] = 0.0

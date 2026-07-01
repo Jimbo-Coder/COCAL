@@ -39,3 +39,23 @@ if (CCTK_Equals(initial_data, "CocalBNS"))
       OPTIONS: global
    } "deallocate all COCAL BNS data"
 }
+
+if (CCTK_Equals(initial_data, "CocalBHT"))
+{
+   SCHEDULE COCAL_ID_read_bht_data IN HydroBase_Initial BEFORE COCAL_ID_bht
+   {
+      LANG: FORTRAN
+      OPTIONS: global
+   } "read COCAL BHT data once per MPI rank"
+
+   SCHEDULE COCAL_ID_bht IN HydroBase_Initial
+   {
+      LANG: FORTRAN
+   } "Interpolate Cocal BHT Initial Data into Cactus"
+
+   SCHEDULE COCAL_ID_deallocate_bht AT POSTPOSTINITIAL
+   {
+      LANG: FORTRAN
+      OPTIONS: global
+   } "deallocate all COCAL BHT data"
+}

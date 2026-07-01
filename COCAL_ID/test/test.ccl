@@ -16,6 +16,11 @@ TEST cocal_rns_cf_teos
   NPROCS 1
 }
 
+TEST cocal_bht
+{
+  NPROCS 1
+}
+
 TEST cocal_mrns_wl_potential
 {
   NPROCS 1

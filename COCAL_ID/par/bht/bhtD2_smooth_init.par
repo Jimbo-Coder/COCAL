@@ -1,6 +1,6 @@
-# COCAL_ID reduced-fixture reader regression test.
+# COCAL_ID BHT reader/fill probe with real local initial data.
 
-Cactus::cctk_run_title = "COCAL_ID MRNS WL potential fixture"
+Cactus::cctk_run_title = "COCAL_ID BHT smooth fill init probe"
 Cactus::cctk_full_warnings = "yes"
 Cactus::highlight_warning_messages = "no"
 Cactus::terminate = "iteration"
@@ -17,15 +17,15 @@ CartGrid3D::type = "coordbase"
 CartGrid3D::domain = "full"
 CartGrid3D::avoid_origin = "no"
 
-CoordBase::xmin = -1.0
-CoordBase::xmax =  1.0
-CoordBase::ymin = -1.0
-CoordBase::ymax =  1.0
-CoordBase::zmin = -1.0
-CoordBase::zmax =  1.0
-CoordBase::dx = 0.5
-CoordBase::dy = 0.5
-CoordBase::dz = 0.5
+CoordBase::xmin = -0.5
+CoordBase::xmax =  0.5
+CoordBase::ymin = -0.5
+CoordBase::ymax =  0.5
+CoordBase::zmin = -0.5
+CoordBase::zmax =  0.5
+CoordBase::dx = 0.01
+CoordBase::dy = 0.01
+CoordBase::dz = 0.01
 CoordBase::boundary_size_x_lower = 2
 CoordBase::boundary_size_y_lower = 2
 CoordBase::boundary_size_z_lower = 2
@@ -55,29 +55,29 @@ ADMBase::shift_timelevels = 1
 HydroBase::timelevels = 1
 SpaceMask::use_mask = "yes"
 
-COCAL_ID::COCAL_ID_PathToID = "../../../arrangements/COCAL/COCAL_ID/test/test_InitialData/mrns_wl"
-COCAL_ID::COCAL_ID_rnstype = "MRNS_WL"
-COCAL_ID::COCAL_ID_read_magnetic_potential = "True"
-COCAL_ID::COCAL_ID_verbose = "False"
+COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bht/bhtD2.0_K1_g1.60_fAJS0.80_000_000_q1.85_l4.00_r0.40_sol_01"
+COCAL_ID::COCAL_ID_bht_fill_method = "smooth"
+COCAL_ID::COCAL_ID_read_tabulated_eos = "False"
+COCAL_ID::COCAL_ID_verbose = "True"
 
-ADMBase::initial_data = "CocalRNS"
+ADMBase::initial_data = "CocalBHT"
 ADMBase::initial_lapse = "Cocal"
 ADMBase::initial_shift = "Cocal"
 ADMBase::initial_dtlapse = "zero"
 ADMBase::initial_dtshift = "zero"
 HydroBase::initial_hydro = "Cocal"
 HydroBase::initial_temperature = "zero"
-HydroBase::initial_Avec = "Cocal"
-HydroBase::initial_Aphi = "Cocal"
+HydroBase::initial_Avec = "zero"
+HydroBase::initial_Aphi = "zero"
 HydroBase::initial_Bvec = "zero"
 
 IO::out_dir = $parfile
-IO::out_fileinfo = "axis labels"
+IO::out_fileinfo = "all"
 IO::parfile_write = "no"
 
 IOBasic::outInfo_every = 1
 IOBasic::outInfo_reductions = "minimum maximum"
-IOBasic::outInfo_vars = "ADMBase::alp HydroBase::rho HydroBase::Avec[0] HydroBase::Aphi"
+IOBasic::outInfo_vars = "ADMBase::alp HydroBase::rho HydroBase::press"
 
 IOScalar::outScalar_every = 1
 IOScalar::all_reductions_in_one_file = "yes"
@@ -91,6 +91,19 @@ IOScalar::outScalar_vars = "
   HydroBase::rho
   HydroBase::press
   HydroBase::vel
-  HydroBase::Avec
-  HydroBase::Aphi
+"
+
+CarpetIOASCII::out1D_every = 1
+CarpetIOASCII::out1D_x = "yes"
+CarpetIOASCII::out1D_y = "no"
+CarpetIOASCII::out1D_z = "no"
+CarpetIOASCII::output_symmetry_points = "no"
+CarpetIOASCII::out1D_vars = "
+  ADMBase::lapse
+  ADMBase::shift
+  ADMBase::metric
+  ADMBase::curv
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::vel
 "

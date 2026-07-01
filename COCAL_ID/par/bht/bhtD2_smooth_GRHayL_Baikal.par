@@ -1,0 +1,235 @@
+# GRHayLHD + Baikal BHT smooth-fill smoke run.
+$itlast=4
+$xmax=8.0
+$dx=0.5
+$out_every=1
+
+ActiveThorns = "
+  ADMBase
+  ADMCoupling
+  ADMMacros
+  AEILocalInterp
+  Baikal
+  Boundary
+  Carpet
+  CarpetInterp
+  CarpetIOASCII
+  CarpetIOBasic
+  CarpetIOScalar
+  CarpetLib
+  CarpetReduce
+  CarpetRegrid2
+  CarpetSlab
+  CartGrid3D
+  CoordBase
+  CoordGauge
+  COCAL_ID
+  CycleClock
+  EOS_Omni
+  HydroBase
+  InitBase
+  IOUtil
+  LocalReduce
+  LoopControl
+  MoL
+  NewRad
+  NaNChecker
+  SpaceMask
+  StaticConformal
+  SummationByParts
+  SymBase
+  SystemTopology
+  Time
+  Timers
+  TimerReport
+  TmunuBase
+  Trigger
+  Vectors
+
+  GRHayLHD
+  GRHayLib
+"
+
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = $itlast
+
+# Grid
+Carpet::domain_from_coordbase = "yes"
+CartGrid3D::type = "coordbase"
+CartGrid3D::domain = "full"
+CartGrid3D::avoid_origin = "no"
+
+CarpetInterp::check_tree_search = "no"
+CarpetInterp::tree_search = "yes"
+
+CoordBase::xmax = $xmax
+CoordBase::ymax = CoordBase::xmax
+CoordBase::zmax = CoordBase::xmax
+CoordBase::xmin = -CoordBase::xmax
+CoordBase::ymin = -CoordBase::xmax
+CoordBase::zmin = -CoordBase::xmax
+CoordBase::dx = $dx
+CoordBase::dy = CoordBase::dx
+CoordBase::dz = CoordBase::dx
+
+CoordBase::boundary_size_x_lower = 3
+CoordBase::boundary_size_y_lower = 3
+CoordBase::boundary_size_z_lower = 3
+CoordBase::boundary_size_x_upper = 3
+CoordBase::boundary_size_y_upper = 3
+CoordBase::boundary_size_z_upper = 3
+CoordBase::boundary_shiftout_x_lower = 1
+CoordBase::boundary_shiftout_y_lower = 1
+CoordBase::boundary_shiftout_z_lower = 1
+CoordBase::boundary_shiftout_x_upper = 0
+CoordBase::boundary_shiftout_y_upper = 0
+CoordBase::boundary_shiftout_z_upper = 0
+
+CarpetRegrid2::regrid_every = 0
+CarpetRegrid2::num_centres = 1
+CarpetRegrid2::num_levels_1 = 1
+
+Carpet::enable_all_storage = no
+Carpet::use_buffer_zones = "yes"
+Carpet::poison_new_timelevels = "yes"
+Carpet::check_for_poison = "no"
+Carpet::init_3_timelevels = no
+Carpet::init_fill_timelevels = "yes"
+Carpet::max_refinement_levels = 1
+Driver::ghost_size = 3
+Carpet::prolongation_order_space = 5
+Carpet::prolongation_order_time = 2
+
+CarpetLib::poison_new_memory = "yes"
+CarpetLib::poison_value = 114
+CarpetLib::support_staggered_operators = "yes"
+
+# Time integration
+Time::dtfac = 0.2
+Time::timestep_method = "courant_static"
+MoL::ODE_Method = "rk4"
+MoL::MoL_Intermediate_Steps = 4
+MoL::MoL_Num_Scratch_Levels = 1
+
+# Storage and coupling
+TmunuBase::stress_energy_storage = yes
+TmunuBase::stress_energy_at_RHS = yes
+TmunuBase::timelevels = 3
+TmunuBase::prolongation_type = none
+
+HydroBase::timelevels = 3
+HydroBase::prolongation_type = "none"
+ADMMacros::spatial_order = 4
+ADMBase::metric_type = "physical"
+SpaceMask::use_mask = "yes"
+
+# Initial data
+InitBase::initial_data_setup_method = "init_some_levels"
+COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bht/bhtD2.0_K1_g1.60_fAJS0.80_000_000_q1.85_l4.00_r0.40_sol_01"
+COCAL_ID::COCAL_ID_bht_fill_method = "smooth"
+COCAL_ID::COCAL_ID_read_tabulated_eos = "False"
+COCAL_ID::COCAL_ID_verbose = "True"
+
+ADMBase::initial_data = "CocalBHT"
+ADMBase::initial_lapse = "Cocal"
+ADMBase::initial_shift = "zero"
+ADMBase::initial_dtlapse = "zero"
+ADMBase::initial_dtshift = "zero"
+HydroBase::initial_hydro = "Cocal"
+HydroBase::initial_temperature = "zero"
+HydroBase::initial_Y_e = "one"
+HydroBase::initial_entropy = "zero"
+HydroBase::initial_Avec = "none"
+HydroBase::initial_Aphi = "none"
+HydroBase::initial_Bvec = "none"
+
+ADMBase::metric_timelevels = 3
+ADMBase::lapse_timelevels = 3
+ADMBase::shift_timelevels = 3
+
+# Evolution
+ADMBase::evolution_method = "Baikal"
+ADMBase::lapse_evolution_method = "Baikal"
+ADMBase::shift_evolution_method = "Baikal"
+ADMBase::dtlapse_evolution_method = "Baikal"
+ADMBase::dtshift_evolution_method = "Baikal"
+
+Baikal::diss_strength = 0.2
+Baikal::eta = 0.36
+
+GRHayLHD::Convert_to_HydroBase_every = $out_every
+
+# BHT D2.0_K1_g1.60 is a one-layer cold polytrope.
+GRHayLib::EOS_type = "Hybrid"
+GRHayLib::neos = 1
+GRHayLib::gamma_th = 1.6
+GRHayLib::k_ppoly0 = 1.0
+GRHayLib::gamma_ppoly_in = [1.6]
+
+GRHayLib::evolve_temperature = no
+GRHayLib::con2prim_routine = "Palenzuela1D"
+GRHayLib::con2prim_backup_routines[0] = "Newman1D"
+GRHayLib::rho_b_atm = 1e-12
+GRHayLib::rho_b_min = 1e-12
+GRHayLib::rho_b_max = 0.004
+GRHayLib::Y_e_atm = 0.5
+GRHayLib::Y_e_max = 1.0
+GRHayLib::T_atm = 1e-2
+GRHayLib::T_min = 1e-2
+GRHayLib::T_max = 90
+GRHayLib::Psi6threshold = 60
+GRHayLib::Lorenz_damping_factor = 0.1
+GRHayLib::calc_primitive_guess = yes
+
+NaNChecker::check_every = 1
+NaNChecker::action_if_found = "terminate"
+NaNChecker::check_vars = "
+  ADMBase::metric
+  ADMBase::lapse
+  ADMBase::shift
+  HydroBase::rho
+  HydroBase::eps
+  HydroBase::press
+  HydroBase::vel
+"
+
+# I/O
+IO::out_dir = ${parfile}
+IO::out_fileinfo = "all"
+IO::parfile_write = "no"
+IO::out_mode = "onefile"
+
+IOBasic::outInfo_every = $out_every
+IOBasic::outInfo_reductions = "minimum maximum"
+IOBasic::outInfo_vars = "
+  Carpet::physical_time_per_hour
+  ADMBase::alp
+  HydroBase::rho
+  HydroBase::press
+  Baikal::HGF
+"
+
+IOScalar::outScalar_every = $out_every
+IOScalar::one_file_per_group = "yes"
+IOScalar::all_reductions_in_one_file = "yes"
+IOScalar::outScalar_reductions = "norm1 norm2 norm_inf sum maximum minimum"
+IOScalar::outScalar_vars = "
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::vel
+  HydroBase::eps
+  ADMBase::lapse
+  ADMBase::shift
+  Baikal::HGF
+  Baikal::MU0GF
+  Baikal::MU1GF
+  Baikal::MU2GF
+  Carpet::timing{reductions='average'}
+"
+
+TimerReport::out_every = $out_every
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers = "yes"
+TimerReport::output_all_timers_together = "yes"
+TimerReport::output_all_timers_readable = "yes"
+TimerReport::n_top_timers = 40

@@ -7,6 +7,7 @@ EXTENDS keyword initial_data
 {
   "CocalRNS" :: "RNS Initial data in Cocal format"
   "CocalBNS" :: "Rotating BNS Initial data in Cocal format"
+  "CocalBHT" :: "Black hole-torus initial data in Cocal format"
 } 
 
 EXTENDS keyword initial_lapse
@@ -41,19 +42,9 @@ EXTENDS keyword initial_Aphi
   "Cocal" :: "Cocal provides the initial_Aphi"
 }
 
-EXTENDS keyword initial_temperature
-{
-  "Cocal" :: "Cocal provides the inital_temperature"
-}
-
-EXTENDS keyword initial_Y_e
-{
-  "Cocal" :: "Cocal provides the initial Baryon fraction"
-}
-
 private:
 
-CCTK_STRING COCAL_ID_PathToID "Path to Cocal RNS/BNS initial data"
+CCTK_STRING COCAL_ID_PathToID "Path to Cocal initial data"
 {
   ".+" :: "Pathname"
 } "."
@@ -66,11 +57,11 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
 } "RNS_CF"
 
 
-CCTK_KEYWORD COCAL_ID_readformat "Format of the input data"
+CCTK_KEYWORD COCAL_ID_bht_fill_method "Interior fill method for BHT excision"
 {
-  "20.12" :: "20.12"
-  "23.15" :: "23.15"
-} "20.12"
+  "smooth" :: "Use automatic exterior radial extrapolation from the ID data"
+  "IDpar" :: "Use legacy center anchors from required read_bin_AH.par in the ID directory"
+} "smooth"
 
 CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
 {
