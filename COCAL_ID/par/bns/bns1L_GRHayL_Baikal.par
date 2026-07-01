@@ -1,8 +1,10 @@
 # GRHayLHD + Baikal BNS 1L baseline
 $itlast=4
 $final_time=1000
+$num_levels=3
 $xmax=64.0
-$dx=4.0
+$dx_fine=1.0
+$dx_coarse=$dx_fine*(2**($num_levels-1))
 $out_every=1
 $out_every2d=64
 $out_every3d=64
@@ -114,11 +116,9 @@ CoordBase::zmax = CoordBase::xmax
 CoordBase::xmin = -CoordBase::xmax
 CoordBase::ymin = -CoordBase::xmax
 CoordBase::zmin = -CoordBase::xmax  #-240.0
-# Change these parameters to change resolution. The ?max settings above
-# have to be multiples of these. 'dx' is the size of one cell in x-direction.
-# Making this smaller means using higher resolution, because more points will
-# be used to cover the same space.
-CoordBase::dx   =  $dx # exponent is number of ref levels -1, gives that value at the most refined level.
+# Change $dx_fine and $num_levels to change the finest moving-box resolution.
+# The coarse dx is $dx_fine times 2**($num_levels-1).
+CoordBase::dx   =  $dx_coarse
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
 
@@ -142,21 +142,21 @@ CarpetRegrid2::num_levels_1 =   2
 CarpetRegrid2::position_x_1 =   0.0
 CarpetRegrid2::position_y_1 =   0.0
 CarpetRegrid2::position_z_1 =   0.0
-CarpetRegrid2::radius_1[1]  =   $xmax/2
+CarpetRegrid2::radius_1[1]  =  32.0
 
-CarpetRegrid2::num_levels_2 =   3
+CarpetRegrid2::num_levels_2 =   $num_levels
 CarpetRegrid2::position_x_2 =  COCAL_ID::COCAL_ID_cen_x1
 CarpetRegrid2::position_y_2 =   0.0
 CarpetRegrid2::position_z_2 =   0.0
-CarpetRegrid2::radius_2[1]  =   $xmax/2
-CarpetRegrid2::radius_2[2]  =   $xmax/4
+CarpetRegrid2::radius_2[1]  =  32.0
+CarpetRegrid2::radius_2[2]  =  16.0
 
-CarpetRegrid2::num_levels_3 =   3
+CarpetRegrid2::num_levels_3 =   $num_levels
 CarpetRegrid2::position_x_3 =   COCAL_ID::COCAL_ID_cen_x2
 CarpetRegrid2::position_y_3 =   0.0
 CarpetRegrid2::position_z_3 =   0.0
-CarpetRegrid2::radius_3[1]  =   $xmax/2
-CarpetRegrid2::radius_3[2]  =   $xmax/4
+CarpetRegrid2::radius_3[1]  =  32.0
+CarpetRegrid2::radius_3[2]  =  16.0
 
 
 

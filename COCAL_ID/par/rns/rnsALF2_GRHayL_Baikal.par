@@ -1,5 +1,9 @@
 # GRHayLHD + Baikal RNS 1Layer baseline
 $itlast=4
+$num_levels=1
+$xmax=24.0
+$dx_fine=1.0
+$dx_coarse=$dx_fine*(2**($num_levels-1))
 $out_every=1
 $out_every2d=64
 $out_every3d=64
@@ -104,23 +108,21 @@ CartGrid3D::avoid_origin = "no"
 CarpetInterp::check_tree_search = "no"
 CarpetInterp::tree_search       = "yes"
 
-CoordBase::xmax = 24.0 #240.0
+CoordBase::xmax = $xmax
 CoordBase::ymax = CoordBase::xmax
 CoordBase::zmax = CoordBase::xmax
 CoordBase::xmin = -CoordBase::xmax
 CoordBase::ymin = -CoordBase::xmax
 CoordBase::zmin = -CoordBase::xmax  #-240.0
-# Change these parameters to change resolution. The ?max settings above
-# have to be multiples of these. 'dx' is the size of one cell in x-direction.
-# Making this smaller means using higher resolution, because more points will
-# be used to cover the same space.
-CoordBase::dx   =  1.0 # local test resolution
+# Change $dx_fine and $num_levels to change the finest grid resolution.
+# The coarse dx is $dx_fine times 2**($num_levels-1).
+CoordBase::dx   =  $dx_coarse
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
 
 CarpetRegrid2::regrid_every =   0
 CarpetRegrid2::num_centres  =   1
-CarpetRegrid2::num_levels_1 = 1
+CarpetRegrid2::num_levels_1 = $num_levels
 #CarpetRegrid2::radius_1[1]  = 480.0
 #CarpetRegrid2::radius_1[1]  = 240.0
 #CarpetRegrid2::radius_1[1]  = 120.0
