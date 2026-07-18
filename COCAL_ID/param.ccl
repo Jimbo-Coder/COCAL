@@ -102,6 +102,10 @@ CCTK_BOOLEAN COCAL_ID_read_tabulated_eos "Read tabulated EOS data when convertin
 {
 } "False"
 
+CCTK_BOOLEAN COCAL_ID_offset_AvecAphi "Evaluate MRNS_WL Avec/Aphi at IllinoisGRMHD staggered locations before HydroBase handoff"
+{
+} "False"
+
 CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
 {
 } "False"

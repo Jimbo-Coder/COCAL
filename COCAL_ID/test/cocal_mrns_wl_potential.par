@@ -79,6 +79,24 @@ IOBasic::outInfo_every = 1
 IOBasic::outInfo_reductions = "minimum maximum"
 IOBasic::outInfo_vars = "ADMBase::alp HydroBase::rho HydroBase::Avec[0] HydroBase::Aphi"
 
+IOASCII::one_file_per_group = "yes"
+IOASCII::out1D_every = 1
+IOASCII::out1D_d = "no"
+IOASCII::out1D_x = "yes"
+IOASCII::out1D_y = "no"
+IOASCII::out1D_z = "no"
+IOASCII::out1D_vars = "
+  ADMBase::lapse
+  ADMBase::shift
+  ADMBase::metric
+  ADMBase::curv
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::vel
+  HydroBase::Avec
+  HydroBase::Aphi
+"
+
 IOScalar::outScalar_every = 1
 IOScalar::all_reductions_in_one_file = "yes"
 IOScalar::one_file_per_group = "yes"

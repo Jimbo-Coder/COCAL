@@ -1,8 +1,11 @@
 # MRNS (magnetized waveless) + Baikal 1Layer (test grid)
+$num_levels=2
+$xmax=32.0
+$dx_fine=0.5
+$dx_coarse=$dx_fine*(2**($num_levels-1))
 $out_every=64
 $out_every2d=64
 $out_every3d=64
-$xmax=32.0
 ActiveThorns = "
   ADMBase
   ADMCoupling
@@ -71,6 +74,7 @@ ActiveThorns = "
 
 # Finalize
 Cactus::terminate           = "iteration"
+Cactus::cctk_itlast          = 64
 Cactus::cctk_final_time     = 256
 
 
@@ -110,17 +114,15 @@ CoordBase::zmax = CoordBase::xmax
 CoordBase::xmin = -CoordBase::xmax
 CoordBase::ymin = -CoordBase::xmax
 CoordBase::zmin = -CoordBase::xmax
-# Change these parameters to change resolution. The ?max settings above
-# have to be multiples of these. 'dx' is the size of one cell in x-direction.
-# Making this smaller means using higher resolution, because more points will
-# be used to cover the same space.
-CoordBase::dx   =  1.0
+# Change $dx_fine and $num_levels to change the finest grid resolution.
+# The coarse dx is $dx_fine times 2**($num_levels-1).
+CoordBase::dx   =  $dx_coarse
 CoordBase::dy   =  CoordBase::dx 
 CoordBase::dz   = CoordBase::dx 
 
 CarpetRegrid2::regrid_every =   0
 CarpetRegrid2::num_centres  =   1
-CarpetRegrid2::num_levels_1 = 2
+CarpetRegrid2::num_levels_1 = $num_levels
 CarpetRegrid2::radius_1[1]  = 0.75*$xmax
 CarpetRegrid2::radius_1[2]  = 0.375*$xmax
 
@@ -261,6 +263,7 @@ InitBase::initial_data_setup_method = "init_some_levels"
 # unpack the MRNS bundle to this directory
 COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/mrns/work_area_RNS_M1.25_df42_SE3_l60_th384_Mpa1.1_LCm0.6"
 COCAL_ID::COCAL_ID_read_magnetic_potential = "True"
+COCAL_ID::COCAL_ID_offset_AvecAphi = "True"
 
 #Type of ID
 # [RNS_WL, RNS_CF, MRNS_WL]
@@ -442,16 +445,15 @@ IOBasic::outInfo_vars  = "Carpet::physical_time_per_hour HydroBase::rho{reductio
 GRHayLib::EOS_type                    = "Hybrid"
 #GRHayLib::EOS_tablepath               = "Hempel_SFHoEOS_rho222_temp180_ye60_version_1.1_20120817_adjusted.h5"
 
-GRHayLib::neos                        = 4
-GRHayLib::gamma_th                    = 1.6666666666666667
-GRHayLib::k_ppoly0                    = 8.94713335e-2
-GRHayLib::gamma_ppoly_in              = [1.35692, 4.07, 2.411, 1.89]
-GRHayLib::rho_ppoly_in                = [3.15519e-04, 8.11939e-04, 1.62003e-03]
+GRHayLib::neos                        = 1
+GRHayLib::gamma_th                    = 2.0
+GRHayLib::k_ppoly0                    = 7.09713E+01
+GRHayLib::gamma_ppoly_in              = [2.0]
 
 
 GRHayLib::evolve_temperature          = no
 GRHayLib::con2prim_routine            = "Palenzuela1D"
-GRhayLib::con2prim_backup_routines[0] = "Newman1D"
+GRHayLib::con2prim_backup_routines[0] = "Font1D"
 GRHayLib::rho_b_atm                   = 1e-12
 GRHayLib::rho_b_min                   = 1e-12
 GRHayLib::rho_b_max                   = 0.004
