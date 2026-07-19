@@ -556,9 +556,9 @@ subroutine COCAL_ID_bht_fill_point(xcac, ycac, zcac, use_IDpar, ok, bht_point_va
     else
        if (.not. smooth_center_attempted) call COCAL_ID_bht_compute_smooth_center()
        if (.not. smooth_center_valid) return
-       do ipt = 1, bht_fill_points
+       ! Hermite matching only needs the exterior value and radial slope.
+       do ipt = 1, 2
           sample_r = r_ah + extra_points_dr*(dble(ipt)-1.0d0+1.0d-8)
-          xfit(ipt) = sample_r*sample_r
           call COCAL_ID_bht_eval_raw(xx_bh + radi*sample_r*ux, yy_bh + radi*sample_r*uy, &
              & zz_bh + radi*sample_r*uz, &
              & .true., sample_ok, sample_q)

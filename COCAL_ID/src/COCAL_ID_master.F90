@@ -78,7 +78,6 @@
 #include "Cocal/teos_lookup.f90"
 #include "Cocal/read_bht_parameter.f90"
 #include "Cocal/calc_bht_excision_radius.f90"
-#include "Cocal/cocal_id_bht_fill.f90"
 
 #include "Cocal/copy_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_1dto2d_mpt.f90"
@@ -247,6 +246,8 @@ module COCAL_ID_data_bht
     real(8), pointer, save :: kxxa(:,:,:) => NULL(), kxya(:,:,:) => NULL(), kxza(:,:,:) => NULL()
     real(8), pointer, save :: kyya(:,:,:) => NULL(), kyza(:,:,:) => NULL(), kzza(:,:,:) => NULL()
 end module COCAL_ID_data_bht
+
+#include "Cocal/cocal_id_bht_fill.f90"
 
 
 
