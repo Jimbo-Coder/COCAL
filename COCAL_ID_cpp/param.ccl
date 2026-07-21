@@ -1,0 +1,117 @@
+# Parameter definitions for thorn COCAL_ID
+# RNS(Rotating Neutron Star) , BNS(Rotating Binary Neutron Star)
+
+
+shares: ADMBase
+EXTENDS keyword initial_data
+{
+  "CocalRNS" :: "RNS Initial data in Cocal format"
+  "CocalBNS" :: "Rotating BNS Initial data in Cocal format"
+  "CocalBHT" :: "Black hole-torus initial data in Cocal format"
+}
+
+EXTENDS keyword initial_lapse
+{
+  "Cocal" :: "Cocal provides the initial_lapse"
+}
+
+EXTENDS keyword initial_shift
+{
+  "Cocal" :: "Cocal provides the initial_shift"
+}
+
+shares: HydroBase
+
+EXTENDS keyword initial_hydro
+{
+  "Cocal" :: "Cocal provides the initial_hydro"
+}
+
+EXTENDS keyword initial_Bvec
+{
+  "Cocal" :: "Cocal provides the initial_bvec"
+}
+
+EXTENDS keyword initial_Avec
+{
+  "Cocal" :: "Cocal provides the initial_Avec"
+}
+
+EXTENDS keyword initial_Aphi
+{
+  "Cocal" :: "Cocal provides the initial_Aphi"
+}
+
+private:
+
+CCTK_STRING COCAL_ID_PathToID "Path to Cocal initial data"
+{
+  ".+" :: "Pathname"
+} "."
+
+CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
+{
+  "RNS_WL" :: "Waveless"
+  "RNS_CF" :: "Conformally Flat"
+  "MRNS_WL" :: "Magnetized Waveless"
+} "RNS_CF"
+
+
+CCTK_KEYWORD COCAL_ID_bht_fill_method "Interior fill method for BHT excision"
+{
+  "smooth" :: "Use automatic exterior radial extrapolation from the ID data"
+  "IDpar" :: "Use legacy center anchors from required read_bin_AH.par in the ID directory"
+} "smooth"
+
+CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_y1 "Y Position of BNS star 1 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_z1 "Z Position of BNS star 1 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_x2 "X Position of BNS star 2 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_y2 "Y Position of BNS star 2 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_cen_z2 "Z Position of BNS star 2 for grid centers and diagnostics"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_BOOLEAN COCAL_ID_read_magnetic_potential "Whether MRNS_WL reads magnetic potentials instead of the Faraday tensor"
+{
+
+} "True"
+
+CCTK_BOOLEAN COCAL_ID_read_tabulated_eos "Read tabulated EOS data when converting COCAL enthalpy to hydro variables"
+{
+} "False"
+
+CCTK_BOOLEAN COCAL_ID_offset_AvecAphi "Evaluate MRNS_WL Avec/Aphi at IllinoisGRMHD staggered locations before HydroBase handoff"
+{
+} "False"
+
+CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
+{
+} "False"
+
+
+CCTK_REAL COCAL_ID_ecc_cor_velx "X velocity of the CoM"
+{
+  *:* :: ""
+} 0.0

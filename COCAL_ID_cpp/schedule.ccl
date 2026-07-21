@@ -1,0 +1,61 @@
+# Schedule definitions for thorn COCAL_ID_cpp
+
+if (CCTK_Equals(initial_data, "CocalRNS"))
+{
+   SCHEDULE COCAL_ID_cpp_read_rns_data IN HydroBase_Initial BEFORE COCAL_ID_cpp_rns
+   {
+      LANG: C
+      OPTIONS: global
+   } "read COCAL RNS data once per MPI rank"
+
+   SCHEDULE COCAL_ID_cpp_rns IN HydroBase_Initial
+   {
+      LANG: C
+   } "Interpolate Cocal RNS Initial Data into Cactus"
+
+   SCHEDULE COCAL_ID_cpp_deallocate_rns AT POSTPOSTINITIAL
+   {
+      LANG: C
+      OPTIONS: global
+   } "deallocate all COCAL RNS data"
+}
+
+if (CCTK_Equals(initial_data, "CocalBNS"))
+{
+   SCHEDULE COCAL_ID_cpp_read_bns_data IN HydroBase_Initial BEFORE COCAL_ID_cpp_bns
+   {
+      LANG: C
+      OPTIONS: global
+   } "read COCAL BNS data once per MPI rank"
+
+   SCHEDULE COCAL_ID_cpp_bns IN HydroBase_Initial
+   {
+      LANG: C
+   } "Interpolate Cocal BNS Initial Data into Cactus"
+
+   SCHEDULE COCAL_ID_cpp_deallocate_bns AT POSTPOSTINITIAL
+   {
+      LANG: C
+      OPTIONS: global
+   } "deallocate all COCAL BNS data"
+}
+
+if (CCTK_Equals(initial_data, "CocalBHT"))
+{
+   SCHEDULE COCAL_ID_cpp_read_bht_data IN HydroBase_Initial BEFORE COCAL_ID_cpp_bht
+   {
+      LANG: C
+      OPTIONS: global
+   } "read COCAL BHT data once per MPI rank"
+
+   SCHEDULE COCAL_ID_cpp_bht IN HydroBase_Initial
+   {
+      LANG: C
+   } "Interpolate Cocal BHT Initial Data into Cactus"
+
+   SCHEDULE COCAL_ID_cpp_deallocate_bht AT POSTPOSTINITIAL
+   {
+      LANG: C
+      OPTIONS: global
+   } "deallocate all COCAL BHT data"
+}

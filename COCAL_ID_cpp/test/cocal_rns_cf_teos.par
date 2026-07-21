@@ -1,0 +1,94 @@
+# COCAL_ID reduced-fixture reader regression test.
+
+Cactus::cctk_run_title = "COCAL_ID RNS CF TEOS fixture"
+Cactus::cctk_full_warnings = "yes"
+Cactus::highlight_warning_messages = "no"
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 0
+
+ActiveThorns = "Boundary CartGrid3D CoordBase InitBase IOUtil SymBase"
+ActiveThorns = "AEILocalInterp"
+ActiveThorns = "Carpet CarpetInterp CarpetIOASCII CarpetIOBasic CarpetIOScalar CarpetLib CarpetReduce CarpetRegrid2 CarpetSlab LoopControl"
+ActiveThorns = "ADMBase HydroBase SpaceMask"
+ActiveThorns = "COCAL_ID_cpp"
+
+Carpet::domain_from_coordbase = yes
+CartGrid3D::type = "coordbase"
+CartGrid3D::domain = "full"
+CartGrid3D::avoid_origin = "no"
+
+CoordBase::xmin = -1.0
+CoordBase::xmax =  1.0
+CoordBase::ymin = -1.0
+CoordBase::ymax =  1.0
+CoordBase::zmin = -1.0
+CoordBase::zmax =  1.0
+CoordBase::dx = 0.5
+CoordBase::dy = 0.5
+CoordBase::dz = 0.5
+CoordBase::boundary_size_x_lower = 2
+CoordBase::boundary_size_y_lower = 2
+CoordBase::boundary_size_z_lower = 2
+CoordBase::boundary_size_x_upper = 2
+CoordBase::boundary_size_y_upper = 2
+CoordBase::boundary_size_z_upper = 2
+
+Driver::ghost_size = 2
+Carpet::max_refinement_levels = 1
+Carpet::prolongation_order_space = 2
+Carpet::prolongation_order_time = 0
+Carpet::init_fill_timelevels = "yes"
+Carpet::poison_new_timelevels = "yes"
+CarpetLib::poison_new_memory = "yes"
+CarpetLib::poison_value = 114
+CarpetInterp::tree_search = "yes"
+CarpetInterp::check_tree_search = "no"
+CarpetRegrid2::regrid_every = 0
+CarpetRegrid2::num_centres = 1
+CarpetRegrid2::num_levels_1 = 1
+
+InitBase::initial_data_setup_method = "init_all_levels"
+ADMBase::metric_type = "physical"
+ADMBase::metric_timelevels = 1
+ADMBase::lapse_timelevels = 1
+ADMBase::shift_timelevels = 1
+HydroBase::timelevels = 1
+SpaceMask::use_mask = "yes"
+
+COCAL_ID_cpp::COCAL_ID_PathToID = "../../../arrangements/COCAL/COCAL_ID_cpp/test/test_InitialData/rns_cf_teos"
+COCAL_ID_cpp::COCAL_ID_rnstype = "RNS_CF"
+COCAL_ID_cpp::COCAL_ID_read_tabulated_eos = "True"
+COCAL_ID_cpp::COCAL_ID_verbose = "False"
+
+ADMBase::initial_data = "CocalRNS"
+ADMBase::initial_lapse = "Cocal"
+ADMBase::initial_shift = "Cocal"
+ADMBase::initial_dtlapse = "zero"
+ADMBase::initial_dtshift = "zero"
+HydroBase::initial_hydro = "Cocal"
+HydroBase::initial_temperature = "zero"
+HydroBase::initial_Avec = "zero"
+HydroBase::initial_Aphi = "zero"
+HydroBase::initial_Bvec = "zero"
+
+IO::out_dir = $parfile
+IO::out_fileinfo = "axis labels"
+IO::parfile_write = "no"
+
+IOBasic::outInfo_every = 1
+IOBasic::outInfo_reductions = "minimum maximum"
+IOBasic::outInfo_vars = "ADMBase::alp HydroBase::rho HydroBase::press"
+
+IOScalar::outScalar_every = 1
+IOScalar::all_reductions_in_one_file = "yes"
+IOScalar::one_file_per_group = "yes"
+IOScalar::outScalar_reductions = "minimum maximum average"
+IOScalar::outScalar_vars = "
+  ADMBase::lapse
+  ADMBase::shift
+  ADMBase::metric
+  ADMBase::curv
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::vel
+"

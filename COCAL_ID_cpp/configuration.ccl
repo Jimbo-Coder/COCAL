@@ -1,0 +1,5 @@
+# Configuration definitions for thorn COCAL_ID_cpp
+
+PROVIDES COCAL_ID_cpp
+{
+}

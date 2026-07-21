@@ -1,0 +1,10 @@
+# Main make.code.defn file for thorn COCAL_ID_cpp
+
+SRCS = cocal_common.cc \
+       cocal_io.cc \
+       cocal_grid.cc \
+       cocal_interp.cc \
+       cocal_eos.cc \
+       cocal_state.cc \
+       cocal_bht.cc \
+       cocal_id_cpp.cc
