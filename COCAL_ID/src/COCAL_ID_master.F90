@@ -1323,7 +1323,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      real(8) :: rrcm, xc,yc,zc, xc_p1, yc_p1, zc_p1, xc_p2, yc_p2, zc_p2
      real(8) :: xc_p3, yc_p3, zc_p3
      real(8) :: xcac, ycac, zcac
-     real(8) :: xcoc, ycoc, zcoc
+     real(8) :: xcoc, ycoc, zcoc, xmid_tol
      real(8) :: emdca, vepca, psica, alphca, bvxdca, bvydca, bvzdca, psi4ca, psif4ca
      real(8) :: hca, preca, rhoca, eneca, epsca
      real(8) :: vxu, vyu, vzu, lam_p1, lam_p2
@@ -1359,6 +1359,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      real(long), external :: COCAL_ID_lagint_4th_apply
    !
 
+     xmid_tol = 64.0d0*epsilon(1.0d0)*max(1.0d0,abs(dis_cm))
 
      if (.not. have_read_data) call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID_bns called before COCAL_ID_read_bns_data completed.")
 
@@ -1513,7 +1514,8 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
              vzu = 0.0d0
              emdca = 0.0d0
            else
-             if (xcoc<=0.0d0) then
+             ! Keep the patch tie-break stable on nominal x=0 grid planes.
+             if (xcoc <= xmid_tol) then
          !=>      call copy_from_mpatch_interpolation_utility(1)
          !      call COCAL_ID_copy_grid_parameter_from_mpt(1)
          !      call COCAL_ID_copy_grid_parameter_binary_excision_from_mpt(1)
