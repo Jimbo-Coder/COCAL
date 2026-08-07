@@ -7,8 +7,7 @@ implicit none
 !
   real(8), intent(inout) :: q
   real(8), intent(out)   :: h, pre, rho, ened
-  integer, save          :: iphase = 1
-  integer                :: i0, i, ii
+  integer                :: iphase, i0
   real(long), external   :: COCAL_ID_lagint_4th
   real(long)             :: x4(4), f4(4), qloc
   real(8)                :: hin, qin, abin, abct, fac1, fac2, fack, small
@@ -33,24 +32,7 @@ implicit none
     return
   end if
 
-  if (iphase < 1 .or. iphase > nphase) iphase = 1
-
-  ii = iphase
-  if (q < qi(iphase)) then
-    do i = ii, 1, -1
-      if ((q >= qi(i-1)) .and. (q <= qi(i))) then
-        iphase = i
-        exit
-      end if
-    end do
-  else
-    do i = ii, nphase
-      if ((q >= qi(i-1)) .and. (q <= qi(i))) then
-        iphase = i
-        exit
-      end if
-    end do
-  end if
+  call COCAL_ID_teos_lookup(q,qi,iphase)
 
   i0 = min0(max0(iphase-2,0),nphase-3)
   qloc = q

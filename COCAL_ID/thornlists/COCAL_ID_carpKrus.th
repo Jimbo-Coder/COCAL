@@ -1,16 +1,15 @@
-# This file was automatically generated using the GetComponents script.
+# Component list for the Einstein Toolkit <http://einsteintoolkit.org/>
+# $Revision$
+# $Date$
+# $HeadURL$
 
 !CRL_VERSION = 1.0
-
-
-# Component list: einsteintoolkit.th
-
 
 !DEFINE ROOT = Cactus
 !DEFINE ARR  = $ROOT/arrangements
 !DEFINE COMPONENTLIST_TARGET = $ROOT/thornlists/
 
-!DEFINE ET_RELEASE = ET_2025_05
+!DEFINE ET_RELEASE = ET_2026_05
 
 
 
@@ -127,6 +126,8 @@ CactusBase/CartGrid3D
 CactusBase/CoordBase
 CactusBase/Fortran
 CactusBase/InitBase
+CactusBase/IOASCII
+CactusBase/IOBasic
 CactusBase/IOUtil
 CactusBase/SymBase
 CactusBase/Time
@@ -138,6 +139,9 @@ CactusBase/Time
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CactusConnect/HTTPD
+CactusConnect/HTTPDExtra
+CactusConnect/Socket
 
 # CactusElliptic thorns
 !TARGET   = $ARR
@@ -146,7 +150,10 @@ CactusBase/Time
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = CactusElliptic/EllPETSc CactusElliptic/TATPETSc
+CactusElliptic/EllBase
 #DISABLED CactusElliptic/EllPETSc
+CactusElliptic/EllSOR
+CactusElliptic/TATelliptic
 #DISABLED CactusElliptic/TATPETSc
 
 # CactusExamples thorns
@@ -156,8 +163,19 @@ CactusBase/Time
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = CactusExamples/HelloWorldCUDA CactusExamples/HelloWorldOpenCL CactusExamples/WaveToyOpenCL
+CactusExamples/DemoInterp
+CactusExamples/FleshInfo
+CactusExamples/HelloWorld
 #DISABLED CactusExamples/HelloWorldCUDA
 #DISABLED CactusExamples/HelloWorldOpenCL
+CactusExamples/IDWaveMoL
+CactusExamples/Poisson
+CactusExamples/SampleBoundary
+CactusExamples/SampleIO
+CactusExamples/TimerInfo
+CactusExamples/WaveMoL
+CactusExamples/WaveToy1DF77
+CactusExamples/WaveToy2DF77
 #DISABLED CactusExamples/WaveToyOpenCL
 
 # CactusIO thorns
@@ -167,6 +185,7 @@ CactusBase/Time
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CactusIO/IOJpeg
 
 # CactusNumerical thorns
 !TARGET   = $ARR
@@ -175,12 +194,27 @@ CactusBase/Time
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CactusNumerical/Cartoon2D
+CactusNumerical/Dissipation
+CactusNumerical/InterpToArray
+CactusNumerical/LocalInterp
+CactusNumerical/LocalInterp2
 CactusNumerical/LocalReduce
 CactusNumerical/MoL
+CactusNumerical/Noise
+CactusNumerical/Norms
+CactusNumerical/Periodic
+CactusNumerical/ReflectionSymmetry
+CactusNumerical/RotatingSymmetry180
+CactusNumerical/RotatingSymmetry90
 CactusNumerical/Slab
+CactusNumerical/SlabTest
 CactusNumerical/SpaceMask
 CactusNumerical/SphericalSurface
 CactusNumerical/SummationByParts
+CactusNumerical/TensorTypes
+CactusNumerical/TestLocalInterp2
+CactusNumerical/TestLocalReduce
 
 # CactusPUGH thorns
 !TARGET   = $ARR
@@ -190,6 +224,9 @@ CactusNumerical/SummationByParts
 !REPO_PATH= $2
 !CHECKOUT =
 CactusPUGH/PUGH
+CactusPUGH/PUGHInterp
+CactusPUGH/PUGHReduce
+CactusPUGH/PUGHSlab
 
 # CactusPUGHIO thorns
 !TARGET   = $ARR
@@ -198,6 +235,8 @@ CactusPUGH/PUGH
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CactusPUGHIO/IOHDF5
+CactusPUGHIO/IOHDF5Util
 
 # CactusTest thorns
 !TARGET   = $ARR
@@ -207,6 +246,28 @@ CactusPUGH/PUGH
 !REPO_PATH= $2
 !CHECKOUT = CactusTest/TestAllTypes
 #DISABLED CactusTest/TestAllTypes
+CactusTest/TestArrays
+CactusTest/TestComplex
+CactusTest/TestCoordinates
+CactusTest/TestFortranCrayPointers
+CactusTest/TestFortranDependencies1
+CactusTest/TestFortranDependencies2
+CactusTest/TestFpointerNULL
+CactusTest/TestFreeF90
+CactusTest/TestGlobalReduce
+CactusTest/TestInclude1
+CactusTest/TestInclude2
+CactusTest/TestLoop
+CactusTest/TestMath
+CactusTest/TestMoL
+CactusTest/TestPar
+CactusTest/TestReadWrite
+CactusTest/TestReduce
+CactusTest/TestSchedule
+CactusTest/TestStrings
+CactusTest/TestTable
+CactusTest/TestTimers
+CactusTest/TestTypes
 
 # CactusUtils thorns
 !TARGET   = $ARR
@@ -216,7 +277,12 @@ CactusPUGH/PUGH
 !REPO_PATH= $2
 !CHECKOUT = CactusUtils/Accelerator CactusUtils/OpenCLRunTime
 #DISABLED CactusUtils/Accelerator
+CactusUtils/Formaline
+CactusUtils/MemSpeed
+CactusUtils/NaNCatcher
 CactusUtils/NaNChecker
+CactusUtils/Nice
+CactusUtils/NoMPI
 #DISABLED CactusUtils/OpenCLRunTime
 CactusUtils/SystemStatistics
 CactusUtils/SystemTopology
@@ -224,6 +290,7 @@ CactusUtils/TerminationTrigger
 CactusUtils/TimerReport
 CactusUtils/Trigger
 CactusUtils/Vectors
+CactusUtils/WatchDog
 
 # CactusWave thorns
 !TARGET   = $ARR
@@ -232,6 +299,17 @@ CactusUtils/Vectors
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CactusWave/IDScalarWave
+CactusWave/IDScalarWaveC
+CactusWave/IDScalarWaveCXX
+CactusWave/IDScalarWaveElliptic
+CactusWave/WaveBinarySource
+CactusWave/WaveToyC
+CactusWave/WaveToyCXX
+CactusWave/WaveToyExtra
+CactusWave/WaveToyF77
+CactusWave/WaveToyF90
+CactusWave/WaveToyFreeF90
 
 
 # Carpet, the AMR driver
@@ -242,17 +320,33 @@ CactusUtils/Vectors
 !REPO_PATH= $2
 !CHECKOUT = Carpet/doc
 Carpet/Carpet
+Carpet/CarpetEvolutionMask
+Carpet/CarpetIntegrateTest
 Carpet/CarpetInterp
+Carpet/CarpetInterp2
 Carpet/CarpetIOASCII
 Carpet/CarpetIOBasic
 Carpet/CarpetIOHDF5
 Carpet/CarpetIOScalar
 Carpet/CarpetLib
+Carpet/CarpetMask
+Carpet/CarpetProlongateTest
 Carpet/CarpetReduce
+Carpet/CarpetRegrid
 Carpet/CarpetRegrid2
+Carpet/CarpetRegridTest
 Carpet/CarpetSlab
+Carpet/CarpetTracker
 Carpet/CycleClock
+Carpet/HighOrderWaveTest
 Carpet/LoopControl
+Carpet/PeriodicCarpet
+Carpet/ReductionTest
+Carpet/ReductionTest2
+Carpet/ReductionTest3
+Carpet/RegridSyncTest
+Carpet/TestCarpetGridInfo
+Carpet/TestLoopControl
 Carpet/Timers
 
 
@@ -263,9 +357,37 @@ Carpet/Timers
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = CarpetX/Algo CarpetX/PDESolvers CarpetX/PoissonX
+CarpetX/ADMBaseX
 #DISABLED CarpetX/Algo
+CarpetX/Arith
+CarpetX/BoxInBox
+CarpetX/CarpetX
+CarpetX/CarpetXRegrid
+CarpetX/CoordinatesX
+CarpetX/Derivs
+CarpetX/ErrorEstimator
+CarpetX/FluxWaveToyX
+CarpetX/HydroBaseX
+CarpetX/Loop
+CarpetX/ODESolvers
 #DISABLED CarpetX/PDESolvers
 #DISABLED CarpetX/PoissonX
+CarpetX/SIMDWaveToyX
+CarpetX/SpacetimeWaveToyX
+CarpetX/StaggeredWaveToyX
+CarpetX/TestArrayGroup
+CarpetX/TestBoundaries
+CarpetX/TestBoxInBox
+CarpetX/TestDerivs
+CarpetX/TestInterpolate
+CarpetX/TestNorms
+CarpetX/TestODESolvers
+CarpetX/TestODESolvers2
+CarpetX/TestOutput
+CarpetX/TestProlongate
+CarpetX/TestSymmetries
+CarpetX/TmunuBaseX
+CarpetX/WaveToyX
 
 
 # CCE_Export to Spectre's Cauchy-characteristic evolution code
@@ -285,6 +407,8 @@ EinsteinAnalysis/CCE_Export
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+CTThorns/CT_Analytic
+CTThorns/CT_MultiLevel
 
 
 # EinsteinAnalysis
@@ -294,10 +418,20 @@ EinsteinAnalysis/CCE_Export
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinAnalysis/ADMAnalysis
+EinsteinAnalysis/ADMMass
+EinsteinAnalysis/AHFinder
+EinsteinAnalysis/AHFinderDirect
+EinsteinAnalysis/CalcK
+EinsteinAnalysis/EHFinder
+EinsteinAnalysis/ET_BHaHAHA
+EinsteinAnalysis/Extract
+EinsteinAnalysis/Hydro_Analysis
 EinsteinAnalysis/Multipole
+EinsteinAnalysis/Outflow
+EinsteinAnalysis/PunctureTracker
 EinsteinAnalysis/QuasiLocalMeasures
 EinsteinAnalysis/WeylScal4
-EinsteinAnalysis/AHFinderDirect
 
 # EinsteinBase
 !TARGET   = $ARR
@@ -346,6 +480,13 @@ EinsteinEvolve/NewRad
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = EinsteinExact/doc EinsteinExact/m EinsteinExact/tests
+EinsteinExact/EinsteinExact_Test
+EinsteinExact/GaugeWave
+EinsteinExact/KerrSchild
+EinsteinExact/Minkowski
+EinsteinExact/ModifiedSchwarzschildBL
+EinsteinExact/ShiftedGaugeWave
+EinsteinExact/Vaidya2
 
 
 # EinsteinInitialData
@@ -355,6 +496,26 @@ EinsteinEvolve/NewRad
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinInitialData/DistortedBHIVP
+EinsteinInitialData/Exact
+EinsteinInitialData/Hydro_InitExcision
+EinsteinInitialData/Hydro_RNSID
+EinsteinInitialData/IDAnalyticBH
+EinsteinInitialData/IDAxiBrillBH
+EinsteinInitialData/IDAxiOddBrillBH
+EinsteinInitialData/IDBrillData
+EinsteinInitialData/IDConstraintViolate
+EinsteinInitialData/IDFileADM
+EinsteinInitialData/IDLinearWaves
+EinsteinInitialData/Meudon_Bin_BH
+EinsteinInitialData/Meudon_Bin_NS
+EinsteinInitialData/Meudon_Mag_NS
+EinsteinInitialData/NoExcision
+EinsteinInitialData/ReadInterpolate
+EinsteinInitialData/RotatingDBHIVP
+EinsteinInitialData/TOVSolver
+EinsteinInitialData/TwoPunctures
+EinsteinInitialData/TwoPuncturesX
 
 # FLRW cosmological initial data
 !TARGET   = $ARR
@@ -363,6 +524,7 @@ EinsteinEvolve/NewRad
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = ../$2_public
 !CHECKOUT =
+EinsteinInitialData/FLRWSolver
 
 # NRPyElliptic
 !TARGET   = $ARR
@@ -371,6 +533,7 @@ EinsteinEvolve/NewRad
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinInitialData/NRPyEllipticET
 
 # Component list for NRPyPN <https://nbviewer.jupyter.org/github/zachetienne/nrpytutorial/blob/master/NRPyPN/NRPyPN.ipynb>
 !TARGET   = $ARR
@@ -388,6 +551,7 @@ EinsteinEvolve/NewRad
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+EinsteinUtils/SetMask_SphericalSurface
 EinsteinUtils/TGRtensor
 
 
@@ -398,16 +562,31 @@ EinsteinUtils/TGRtensor
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = ../$1-$2
 !CHECKOUT = ExternalLibraries/OpenBLAS ExternalLibraries/OpenCL ExternalLibraries/PAPI ExternalLibraries/pciutils ExternalLibraries/PETSc
+ExternalLibraries/ADIOS2
+ExternalLibraries/AMReX
 ExternalLibraries/BLAS
+ExternalLibraries/Boost
+ExternalLibraries/CMake
+ExternalLibraries/FFTW3
+ExternalLibraries/GSL
 ExternalLibraries/HDF5
 ExternalLibraries/hwloc
 ExternalLibraries/LAPACK
+ExternalLibraries/libjpeg
+ExternalLibraries/LORENE
 ExternalLibraries/MPI
+ExternalLibraries/NSIMD
 #DISABLED ExternalLibraries/OpenBLAS
 #DISABLED ExternalLibraries/OpenCL
+ExternalLibraries/openPMD
+ExternalLibraries/OpenSSL
 #DISABLED ExternalLibraries/PAPI
 #DISABLED ExternalLibraries/pciutils
 #DISABLED ExternalLibraries/PETSc
+ExternalLibraries/pthreads
+ExternalLibraries/SGRID
+ExternalLibraries/Silo
+ExternalLibraries/yaml_cpp
 ExternalLibraries/zlib
 
 # A newer version of Lorene, by default disabled
@@ -463,16 +642,19 @@ GRHayL/GRHayLib
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
-GRHayLET/IllinoisGRMHD
 GRHayLET/GRHayLHD
+GRHayLET/GRHayLHDX
 GRHayLET/GRHayLID
+GRHayLET/GRHayLIDX
+GRHayLET/IllinoisGRMHD
 
 !TARGET   = $ARR
 !TYPE     = git
-!URL      = https://github.com/dboyer7/TOVola.git
+!URL      = https://bitbucket.org/einsteintoolkit/einsteininitialdata.git
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+GRHayLET/TOVola
 
 # From Kranc (required e.g. by McLachlan)
 !TARGET   = $ARR
@@ -501,6 +683,13 @@ KrancNumericalTools/GenericFD
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = Llama/doc
+Llama/ADMDerivatives
+Llama/Coordinates
+Llama/CoordinatesSymmetry
+Llama/GlobalDerivative
+Llama/Interpolate2
+Llama/LlamaWaveToy
+Llama/WaveExtractL
 
 
 # McLachlan, the spacetime code
@@ -510,7 +699,17 @@ KrancNumericalTools/GenericFD
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT = McLachlan/doc McLachlan/m McLachlan/par McLachlan/ML_WaveToy_CL
+McLachlan/ML_ADMConstraints
+McLachlan/ML_ADMQuantities
+McLachlan/ML_BSSN
+McLachlan/ML_BSSN_Helper
+McLachlan/ML_BSSN_Test
+McLachlan/ML_CCZ4
+McLachlan/ML_CCZ4_Helper
+McLachlan/ML_CCZ4_Test
+McLachlan/ML_WaveToy
 #DISABLED McLachlan/ML_WaveToy_CL
+McLachlan/ML_WaveToy_Test
 
 
 # Numerical
@@ -530,6 +729,19 @@ Numerical/AEILocalInterp
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+PITTNullCode/NullConstr
+PITTNullCode/NullDecomp
+PITTNullCode/NullEvolve
+PITTNullCode/NullExact
+PITTNullCode/NullGrid
+PITTNullCode/NullInterp
+PITTNullCode/NullNews
+PITTNullCode/NullPsiInt
+PITTNullCode/NullSHRExtract
+PITTNullCode/NullVars
+PITTNullCode/SphericalHarmonicDecomp
+PITTNullCode/SphericalHarmonicRecon
+PITTNullCode/SphericalHarmonicReconGen
 
 
 # Power -- waveform extrapolation
@@ -550,6 +762,20 @@ Numerical/AEILocalInterp
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = $2
 !CHECKOUT =
+Lean/LeanBSSNMoL
+Lean/NPScalars
+
+
+# Canuda -- CanudaX
+!TARGET    = $ARR
+!TYPE      = git
+!URL       = https://bitbucket.org/canuda/canudax.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH = $2
+!CHECKOUT =
+CanudaX/CanudaX_BSSNMoL
+CanudaX/CanudaX_ExactID
+CanudaX/CanudaX_NPScalars
 
 
 # Canuda -- Proca
@@ -559,6 +785,11 @@ Numerical/AEILocalInterp
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = $2
 !CHECKOUT =
+Proca/NPScalars_Proca
+Proca/ProcaBase
+Proca/ProcaEvolve
+Proca/Proca_simpleID
+Proca/TwoPunctures_KerrProca
 
 
 # Canuda -- Scalar
@@ -567,7 +798,11 @@ Numerical/AEILocalInterp
 !URL       = https://bitbucket.org/canuda/Scalar.git
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = $2
-!CHECKOUT = Scalar/doc
+!CHECKOUT =
+Scalar/ScalarBase
+Scalar/ScalarEvolve
+Scalar/ScalarInit
+Scalar/TwoPunctures_BBHSF
 
 
 # SGRID data reader
@@ -577,6 +812,7 @@ Numerical/AEILocalInterp
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH = $2
 !CHECKOUT =
+CactusSgrid/DNSdata
 
 
 # Various thorns from WVU: IllinoisGRMHD, GiRaFFE, ShiftedKerrSchild, and FishboneMoncriefID
@@ -587,6 +823,16 @@ Numerical/AEILocalInterp
 !REPO_PATH= $2
 !CHECKOUT =
 WVUThorns/Baikal
+WVUThorns/BaikalVacuum
+WVUThorns/Convert_to_HydroBase
+WVUThorns/FishboneMoncriefID
+WVUThorns/GiRaFFE
+WVUThorns/GiRaFFEfood
+WVUThorns/GiRaFFE_to_HydroBase
+WVUThorns/ID_converter_GiRaFFE
+WVUThorns/ID_converter_ILGRMHD
+WVUThorns/Seed_Magnetic_Fields
+WVUThorns/ShiftedKerrSchild
 
 
 # Various "diagnostic" thorns from WVU:
@@ -600,6 +846,7 @@ WVUThorns/Baikal
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
 !CHECKOUT =
+WVUThorns_Diagnostics/particle_tracerET
 WVUThorns_Diagnostics/smallbPoynET
 WVUThorns_Diagnostics/VolumeIntegrals_GRMHD
 WVUThorns_Diagnostics/VolumeIntegrals_vacuum
@@ -610,11 +857,28 @@ WVUThorns_Diagnostics/VolumeIntegrals_vacuum
 !URL      = https://github.com/EinsteinToolkit/SpacetimeX
 !REPO_BRANCH = $ET_RELEASE
 !REPO_PATH= $2
-!CHECKOUT = 
+!CHECKOUT =
+SpacetimeX/NewRadX
+
+# Cottonmouth
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://github.com/EinsteinToolkit/Cottonmouth
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+Cottonmouth/CottonmouthBSSNOK4m
+Cottonmouth/CottonmouthGaugeWaveID
+Cottonmouth/CottonmouthLinearWaveID
+Cottonmouth/CottonmouthZ4c4m
 
 # Private thorns
 !TARGET   = $ARR
 !TYPE     = ignore
 !CHECKOUT =
+
+# Local COCAL reader development thorn
+!TARGET = $ARR
+!TYPE = ignore
+!CHECKOUT =
 COCAL/COCAL_ID
-#NSTools/ReduceLocTracker
