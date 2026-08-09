@@ -533,22 +533,22 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
     integer :: fl_irgex4(4,4,4), fl_itgex4(4,4,4), fl_ipgex4(4,4,4)
 
     logical :: bool_metric_curv, bool_lapse, bool_shift, bool_hydro, bool_Bvec, bool_Avec_Aphi
-    logical :: outside_fluid
+    logical :: is_rns_wl_cf, is_mrns_wl
+    logical :: outside_fluid, found_nan_gxx
 
     real(8) :: xcac, ycac, zcac ! Cactus coordinates
     real(8) :: dxcac, dycac, dzcac
-    real(8) :: xcoc, ycoc, zcoc, rcoc ! COCAL coordinates
-    real(8) :: emdca,  omefca, psica,  alphca, psi4ca, psif4ca
-    real(8) :: bvxdca, bvydca, bvzdca, bvxuca, bvyuca, bvzuca
+    real(8) :: xcoc, ycoc, zcoc ! COCAL coordinates
+    real(8) :: emdca, omefca, psica, alphca, psi4ca
+    real(8) :: bvxdca, bvydca, bvzdca
     real(8) :: hxxdca, hxydca, hxzdca, hyydca, hyzdca, hzzdca
-    real(8) :: hxxuca, hxyuca, hxzuca, hyyuca, hyzuca, hzzuca
-    real(8) :: hca, preca, rhoca, eneca, epsca
+    real(8) :: hca, preca, rhoca, eneca
     real(8) :: kxxca, kxyca, kxzca, kyyca, kyzca, kzzca
     real(8) :: vxu, vyu, vzu
     real(8) :: bxcor, bycor, bzcor, bvxufca, bvyufca, bvzufca, psifca, alphfca
     real(8) :: gxx1, gxy1, gxz1, gyy1, gyz1, gzz1, kxx1, kxy1, kxz1, kyy1, kyz1, kzz1
-    real(8) :: va1, vaxd1, vayd1, vazd1, fxd1, fyd1, fzd1, fxyd1, fxzd1, fyzd1
-    real(8) :: vaca, vaxdca, vaydca, vazdca, fxdca, fydca, fzdca, fxydca, fxzdca, fyzdca
+    real(8) :: va1, vaxd1, vayd1, vazd1, fxyd1, fxzd1, fyzd1
+    real(8) :: vaca, vaxdca, vaydca, vazdca, fxydca, fxzdca, fyzdca
     real(8) :: utfca, uxfca, uyfca, uzfca ! Fluid 4 vel
     real(8) :: gr_wr(4), gr_wth(4), gr_wphi(4)
     real(8) :: fl_wr(4), fl_wth(4), fl_wphi(4)
@@ -561,11 +561,11 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
     kxx1=0.0d0; kxy1=0.0d0; kxz1=0.0d0; kyy1=0.0d0; kyz1=0.0d0; kzz1=0.0d0
     kxxca=0.0d0; kxyca=0.0d0; kxzca=0.0d0; kyyca=0.0d0; kyzca=0.0d0; kzzca=0.0d0
 
-    vaca=0.0d0;  vaxdca=0.0d0;  vaydca=0.0d0;  vazdca=0.0d0;                              ! (phi,A)
-    fxdca=0.0d0; fydca=0.0d0; fzdca=0.0d0; fxydca=0.0d0; fxzdca=0.0d0; fyzdca=0.0d0;     ! Faraday Tensor
-    fxd1=0.0d0;  fyd1=0.0d0;  fzd1=0.0d0;  fxyd1=0.0d0;  fxzd1=0.0d0; fyzd1=0.0d0;          !
-    va1=0.0d0;  vaxd1=0.0d0; vayd1=0.0d0; vazd1=0.0d0;                                      !(phi,A) (Aphi, Avec[3]) & (Bvec[3])
-    utfca=0.0d0;  uxfca=0.0d0;  uyfca=0.0d0;  uzfca=0.0d0;                                  ! Fluid 4 vel (vel[3])
+    vaca=0.0d0; vaxdca=0.0d0; vaydca=0.0d0; vazdca=0.0d0 ! (phi, A)
+    fxydca=0.0d0; fxzdca=0.0d0; fyzdca=0.0d0         ! Faraday tensor
+    fxyd1=0.0d0; fxzd1=0.0d0; fyzd1=0.0d0
+    va1=0.0d0; vaxd1=0.0d0; vayd1=0.0d0; vazd1=0.0d0 ! (phi, A) and (Aphi, Avec[3])
+    utfca=0.0d0; uxfca=0.0d0; uyfca=0.0d0; uzfca=0.0d0 ! Fluid 4-velocity
 
     nx = cctk_lsh(1)
     ny = cctk_lsh(2)
@@ -578,6 +578,13 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
     bool_hydro = CCTK_EQUALS(initial_hydro, "Cocal")
     bool_Bvec = CCTK_EQUALS(initial_Bvec, "Cocal")
     bool_Avec_Aphi = CCTK_EQUALS(initial_Avec, "Cocal") .and. CCTK_EQUALS(initial_Aphi, "Cocal")
+    is_rns_wl_cf = CCTK_EQUALS(COCAL_ID_rnstype, "RNS_WL") .or. &
+                   CCTK_EQUALS(COCAL_ID_rnstype, "RNS_CF")
+    is_mrns_wl = CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")
+
+    dxcac = CCTK_DELTA_SPACE(1)
+    dycac = CCTK_DELTA_SPACE(2)
+    dzcac = CCTK_DELTA_SPACE(3)
 
     if (CCTK_EQUALS(initial_Avec, "Cocal") .and. .not. CCTK_EQUALS(initial_Aphi, "Cocal")) then
        call CCTK_WARN(CCTK_WARN_ABORT, "Invalid initial data configuration: initial_Avec is set to Cocal but initial_Aphi is not.")
@@ -602,6 +609,17 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
 
     if (COCAL_ID_verbose == 1) call CCTK_INFO("Cocal: Looping over local cartesian grid:")
 
+    found_nan_gxx = .false.
+    !$OMP parallel do collapse(3) default(shared) schedule(static) &
+    !$OMP& reduction(.or.:found_nan_gxx) &
+    !$OMP& private(i,j,k,xcac,ycac,zcac,xcoc,ycoc,zcoc,emdca,omefca,psica,alphca,psi4ca, &
+    !$OMP& bvxdca,bvydca,bvzdca,hxxdca,hxydca,hxzdca,hyydca,hyzdca,hzzdca, &
+    !$OMP& hca,preca,rhoca,eneca,kxxca,kxyca,kxzca,kyyca,kyzca,kzzca,vxu,vyu,vzu,bxcor,bycor,bzcor, &
+    !$OMP& bvxufca,bvyufca,bvzufca,psifca,alphfca,gxx1,gxy1,gxz1,gyy1,gyz1,gzz1,kxx1,kxy1,kxz1, &
+    !$OMP& kyy1,kyz1,kzz1,va1,vaxd1,vayd1,vazd1,fxyd1,fxzd1,fyzd1,vaca,vaxdca, &
+    !$OMP& vaydca,vazdca,fxydca,fxzdca,fyzdca,utfca,uxfca,uyfca,uzfca, &
+    !$OMP& gr_irgex4,gr_itgex4,gr_ipgex4,fl_irgex4,fl_itgex4,fl_ipgex4,gr_wr,gr_wth,gr_wphi, &
+    !$OMP& fl_wr,fl_wth,fl_wphi,outside_fluid)
     do k = 1, nz
        do j = 1, ny
           do i = 1, nx
@@ -623,10 +641,6 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                 call COCAL_ID_cgr_4th_apply(bvxd, bvxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                 call COCAL_ID_cgr_4th_apply(bvyd, bvydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                 call COCAL_ID_cgr_4th_apply(bvzd, bvzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
-
-                call COCAL_ID_cgr_4th_apply(bvxu, bvxuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Repeats itself for CF
-                call COCAL_ID_cgr_4th_apply(bvyu, bvyuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
-                call COCAL_ID_cgr_4th_apply(bvzu, bvzuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
                 call COCAL_ID_cgr_4th_apply(hxxd, hxxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Trivial for CF, 0 = 0
                 call COCAL_ID_cgr_4th_apply(hxyd, hxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
@@ -656,23 +670,20 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                    call COCAL_ID_cgr_4th_apply(psif , psifca , fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
                    call COCAL_ID_cgr_4th_apply(alphf, alphfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)
 
-                   if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
+                   if (is_mrns_wl) then
                       call COCAL_ID_cgr_4th_apply(utf, utfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!4vel
                       call COCAL_ID_cgr_4th_apply(uxf, uxfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
                       call COCAL_ID_cgr_4th_apply(uyf, uyfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
                       call COCAL_ID_cgr_4th_apply(uzf, uzfca, fl_irgex4, fl_itgex4, fl_ipgex4, fl_wr, fl_wth, fl_wphi)!
                    end if
                 end if
-                if (CCTK_EQUALS(COCAL_ID_rnstype,"MRNS_WL")) then
+                if (is_mrns_wl) then
                    if (COCAL_ID_read_magnetic_potential == 1) then
                       call COCAL_ID_cgr_4th_apply(  va,   vaca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)!potentials
                       call COCAL_ID_cgr_4th_apply(vaxd, vaxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(vayd, vaydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(vazd, vazdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                    else if (COCAL_ID_read_magnetic_potential == 0) then
-                      call COCAL_ID_cgr_4th_apply(fxd,   fxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Faraday/fields
-                      call COCAL_ID_cgr_4th_apply(fyd,   fydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
-                      call COCAL_ID_cgr_4th_apply(fzd,   fzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fxyd, fxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fxzd, fxzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fyzd, fyzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
@@ -682,16 +693,14 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
              bxcor = bvxufca + omefca*(-ycoc)
              bycor = bvyufca + omefca*(xcoc)
              bzcor = bvzufca
-             psif4ca = psifca**4
-
              psi4ca = psica**4
 
              if (dabs(emdca) > 1.0d-14) then
-                if (CCTK_EQUALS(COCAL_ID_rnstype, "RNS_WL") .or. CCTK_EQUALS(COCAL_ID_rnstype,"RNS_CF")) then
+                if (is_rns_wl_cf) then
                    vxu = bxcor/alphfca
                    vyu = bycor/alphfca
                    vzu = bzcor/alphfca
-                else if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
+                else if (is_mrns_wl) then
                    vxu = (uxfca/utfca + bvxufca)/alphfca     !
                    vyu = (uyfca/utfca + bvyufca)/alphfca     !
                    vzu = (uzfca/utfca + bvzufca)/alphfca     !
@@ -727,7 +736,7 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
              end if
              !
 
-             if (CCTK_EQUALS(COCAL_ID_rnstype, "MRNS_WL")) then
+             if (is_mrns_wl) then
                 if (COCAL_ID_read_magnetic_potential == 1) then
                    if (bool_Avec_Aphi) then
                       va1 = vaca
@@ -735,10 +744,6 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                       vayd1 = vaydca
                       vazd1 = vazdca
                       if (COCAL_ID_offset_AvecAphi == 1) then
-                         dxcac = CCTK_DELTA_SPACE(1)
-                         dycac = CCTK_DELTA_SPACE(2)
-                         dzcac = CCTK_DELTA_SPACE(3)
-
                          ! IllinoisGRMHD stores Ax(i,j+1/2,k+1/2), Ay(i+1/2,j,k+1/2),
                          ! Az(i+1/2,j+1/2,k), and Aphi(i+1/2,j+1/2,k+1/2).
                          call COCAL_ID_gr2cgr_4th_setup(xcac/radi,(ycac+0.5d0*dycac)/radi,(zcac+0.5d0*dzcac)/radi, &
@@ -816,11 +821,7 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                  gyy(i,j,k) = gyy1
                  gyz(i,j,k) = gyz1
                  gzz(i,j,k) = gzz1
-                 if (gxx1 == gxx1) then
-                    continue
-                 else
-                    call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-                 end if
+                 if (gxx1 /= gxx1) found_nan_gxx = .true.
 
                  kxx(i,j,k) = kxx1
                  kxy(i,j,k) = kxy1
@@ -832,6 +833,9 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
           end do
        end do
     end do
+    !$OMP end parallel do
+
+    if (found_nan_gxx) call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
 
 
     if (COCAL_ID_verbose == 1) call CCTK_INFO("3D Loop 100% Done")
@@ -1301,14 +1305,12 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      DECLARE_CCTK_FUNCTIONS
      DECLARE_CCTK_PARAMETERS
      integer :: i, j, k, nx, ny, nz
-     integer :: impt_ex, ico, irr, isp
-
-     logical ::  bool_metric_curv, bool_lapse, bool_shift, bool_hydro
+     logical ::  bool_metric_curv, bool_lapse, bool_shift, bool_hydro, found_nan_gxx
 
      real(8) :: huta, alphfca2
      real(8) :: vepxfca, vepyfca, vepzfca
 
-     real(8) :: confpow, psifcacp, wxspfca, wyspfca, wzspfca, wdvep, w2, wterm
+     real(8) :: psifcacp, wxspfca, wyspfca, wzspfca, wdvep, w2, wterm
      real(long) ::  fr4wxspf(4) , ft4wxspf(4) , fp4wxspf(4)
      real(long) ::  fr4wyspf(4) , ft4wyspf(4) , fp4wyspf(4)
      real(long) ::  fr4wzspf(4) , ft4wzspf(4) , fp4wzspf(4)
@@ -1320,12 +1322,12 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      character(30) :: char1
      character(400) :: outstr
      character(len=1) :: np(5) = (/'1', '2','3', '4', '5'/)
-     real(8) :: rrcm, xc,yc,zc, xc_p1, yc_p1, zc_p1, xc_p2, yc_p2, zc_p2
+     real(8) :: rrcm, xc_p1, yc_p1, zc_p1, xc_p2, yc_p2, zc_p2
      real(8) :: xc_p3, yc_p3, zc_p3
      real(8) :: xcac, ycac, zcac
      real(8) :: xcoc, ycoc, zcoc, xmid_tol
-     real(8) :: emdca, vepca, psica, alphca, bvxdca, bvydca, bvzdca, psi4ca, psif4ca
-     real(8) :: hca, preca, rhoca, eneca, epsca
+     real(8) :: emdca, psica, alphca, bvxdca, bvydca, bvzdca, psi4ca, psif4ca
+     real(8) :: hca, preca, rhoca, eneca
      real(8) :: vxu, vyu, vzu, lam_p1, lam_p2
      real(8) :: bxcor, bycor, bzcor, bvxdfca, bvydfca, bvzdfca, psifca, alphfca
      real(8) :: gxx1, gxy1, gxz1, gyy1, gyz1, gzz1, kxx1, kxy1, kxz1, kyy1, kyz1, kzz1
@@ -1333,7 +1335,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      real(long) ::  rc_p1, thc_p1, phic_p1, varpic_p1, rcf_p1, rsca_p1
      real(long) ::  rc_p2, thc_p2, phic_p2, varpic_p2, rcf_p2, rsca_p2
      real(long) ::  rc_p3, thc_p3, phic_p3, varpic_p3
-     real(long) ::  r4(4), th4(4), phi4(4), fr4(4), ft4(4), fp4(4)
+     real(long) ::  r4(4), th4(4), phi4(4)
      real(long) ::  wr4(4), wth4(4), wphi4(4)
      real(long) ::  fr4psi(4)   , ft4psi(4)   , fp4psi(4)
      real(long) ::  fr4alph(4)  , ft4alph(4)  , fp4alph(4)
@@ -1388,6 +1390,26 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      ! write(6,'(a23,3e20.12)') "Point given wrt CACTUS:", xcac,ycac,zcac
      ! write(6,'(a38,2e20.12)') "Cocal radius scale in COCP-1, COCP-2 :", radi_p1, radi_p2
      ! write(6,'(a38,2e20.12)') "Cocal surface scale in COCP-1, COCP-2:", r_surf_p1, r_surf_p2
+     found_nan_gxx = .false.
+     !$OMP parallel do collapse(3) default(shared) schedule(static) &
+     !$OMP& reduction(.or.:found_nan_gxx) &
+     !$OMP& private(i,j,k,huta,alphfca2,vepxfca,vepyfca,vepzfca, &
+     !$OMP& psifcacp,wxspfca,wyspfca,wzspfca,wdvep,w2,wterm,fr4wxspf,ft4wxspf,fp4wxspf, &
+     !$OMP& fr4wyspf,ft4wyspf,fp4wyspf,fr4wzspf,ft4wzspf,fp4wzspf,fr4vepxf,ft4vepxf, &
+     !$OMP& fp4vepxf,fr4vepyf,ft4vepyf,fp4vepyf,fr4vepzf,ft4vepzf,fp4vepzf,rrcm, &
+     !$OMP& xc_p1,yc_p1,zc_p1,xc_p2,yc_p2,zc_p2,xc_p3,yc_p3,zc_p3,xcac,ycac,zcac,xcoc,ycoc, &
+     !$OMP& zcoc,emdca,psica,alphca,bvxdca,bvydca,bvzdca,psi4ca,psif4ca,hca,preca, &
+     !$OMP& rhoca,eneca,vxu,vyu,vzu,lam_p1,lam_p2,bxcor,bycor,bzcor,bvxdfca,bvydfca, &
+     !$OMP& bvzdfca,psifca,alphfca,gxx1,gxy1,gxz1,gyy1,gyz1,gzz1,kxx1,kxy1,kxz1,kyy1, &
+     !$OMP& kyz1,kzz1,axx,axy,axz,ayy,ayz,azz,rc_p1,thc_p1,phic_p1,varpic_p1,rcf_p1, &
+     !$OMP& rsca_p1,rc_p2,thc_p2,phic_p2,varpic_p2,rcf_p2,rsca_p2,rc_p3,thc_p3,phic_p3, &
+     !$OMP& varpic_p3,r4,th4,phi4,wr4,wth4,wphi4,fr4psi,ft4psi,fp4psi,fr4alph, &
+     !$OMP& ft4alph,fp4alph,fr4bvxd,ft4bvxd,fp4bvxd,fr4bvyd,ft4bvyd,fp4bvyd,fr4bvzd, &
+     !$OMP& ft4bvzd,fp4bvzd,fr4axx,ft4axx,fp4axx,fr4axy,ft4axy,fp4axy,fr4axz,ft4axz, &
+     !$OMP& fp4axz,fr4ayy,ft4ayy,fp4ayy,fr4ayz,ft4ayz,fp4ayz,fr4azz,ft4azz,fp4azz, &
+     !$OMP& fr4emd,ft4emd,fp4emd,fr4psif,ft4psif,fp4psif,fr4alphf,ft4alphf,fp4alphf, &
+     !$OMP& fr4bvxdf,ft4bvxdf,fp4bvxdf,fr4bvydf,ft4bvydf,fp4bvydf,fr4bvzdf,ft4bvzdf, &
+     !$OMP& fp4bvzdf,irg,itg,ipg,irgex,itgex,ipgex,ir0,it0,ip0,irg0,itg0,ipg0,ii,jj,kk)
      do k = 1, nz
        do j = 1, ny
          do i = 1, nx
@@ -2062,11 +2084,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
               kyz(i,j,k) = kyz1
               kzz(i,j,k) = kzz1
 
-              if (gxx1 == gxx1) then
-                 continue
-              else
-                 call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
-              end if
+              if (gxx1 /= gxx1) found_nan_gxx = .true.
            end if
 
            if (COCAL_ID_read_tabulated_eos == 1) then
@@ -2123,6 +2141,9 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
          end do
        end do
      end do
+     !$OMP end parallel do
+
+     if (found_nan_gxx) call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
 
      if (COCAL_ID_verbose == 1) call CCTK_INFO("Finished looping over Cactus Grid")
 
