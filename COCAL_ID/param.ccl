@@ -7,6 +7,7 @@ EXTENDS keyword initial_data
 {
   "CocalRNS" :: "RNS Initial data in Cocal format"
   "CocalBNS" :: "Rotating BNS Initial data in Cocal format"
+  "CocalBHT" :: "Black hole-torus initial data in Cocal format"
 } 
 
 EXTENDS keyword initial_lapse
@@ -55,6 +56,12 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
   "MRNS_WL" :: "Magnetized Waveless"
 } "RNS_CF"
 
+
+CCTK_KEYWORD COCAL_ID_bht_fill_method "Interior fill method for BHT excision"
+{
+  "smooth" :: "Use automatic exterior radial extrapolation from the ID data"
+  "IDpar" :: "Use legacy center anchors from required read_bin_AH.par in the ID directory"
+} "smooth"
 
 CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
 {

@@ -1,0 +1,419 @@
+# Carpet + GRHayLHD + Baikal BHT smooth-fill semiproduction run.
+# For a local smoke test, use a temporary copy with $itlast=4,
+# $out_every=1, $diag_every=1, and reduced output cadences.
+$itlast=100000000
+$xmax=12.0
+$dx=0.5
+$out_every=16
+$diag_every=16
+$out_every2d=64
+$out_every3d=512
+
+ActiveThorns = "
+  ADMBase
+  ADMCoupling
+  ADMMass
+  ADMMacros
+  AEILocalInterp
+  AHFinderDirect
+  Baikal
+  Boundary
+  Carpet
+  CarpetInterp
+  CarpetIOASCII
+  CarpetIOBasic
+  CarpetIOHDF5
+  CarpetIOScalar
+  CarpetLib
+  CarpetReduce
+  CarpetRegrid2
+  CarpetSlab
+  CartGrid3D
+  CoordBase
+  CoordGauge
+  COCAL_ID
+  CycleClock
+  EOS_Omni
+  HydroBase
+  InitBase
+  IOUtil
+  LocalReduce
+  LoopControl
+  MoL
+  NewRad
+  NaNChecker
+  QuasiLocalMeasures
+  SphericalSurface
+  SpaceMask
+  StaticConformal
+  SummationByParts
+  SymBase
+  SystemTopology
+  SystemStatistics
+  TerminationTrigger
+  Time
+  Timers
+  TimerReport
+  TmunuBase
+  Trigger
+  Vectors
+  VolumeIntegrals_GRMHD
+  VolumeIntegrals_vacuum
+
+  GRHayLHD
+  GRHayLib
+"
+
+# Keep LoopControl's tiled setup, but avoid cache-line-aligned trial boxes that
+# collapse to zero width on this larger, full-torus hierarchy.
+LoopControl::align_with_cachelines = "no"
+
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = $itlast
+
+TerminationTrigger::max_walltime = @WALLTIME_HOURS@
+TerminationTrigger::on_remaining_walltime = 45  # minutes
+TerminationTrigger::check_file_every = 256
+TerminationTrigger::termination_file = "TerminationTrigger.txt"
+TerminationTrigger::termination_from_file = "yes"
+TerminationTrigger::create_termination_file = "yes"
+
+# Grid
+Carpet::domain_from_coordbase = "yes"
+CartGrid3D::type = "coordbase"
+CartGrid3D::domain = "full"
+CartGrid3D::avoid_origin = "no"
+
+CarpetInterp::check_tree_search = "no"
+CarpetInterp::tree_search = "yes"
+
+CoordBase::xmax = $xmax
+CoordBase::ymax = CoordBase::xmax
+CoordBase::zmax = CoordBase::xmax
+CoordBase::xmin = -CoordBase::xmax
+CoordBase::ymin = -CoordBase::xmax
+CoordBase::zmin = -CoordBase::xmax
+CoordBase::dx = $dx
+CoordBase::dy = CoordBase::dx
+CoordBase::dz = CoordBase::dx
+
+CoordBase::boundary_size_x_lower = 3
+CoordBase::boundary_size_y_lower = 3
+CoordBase::boundary_size_z_lower = 3
+CoordBase::boundary_size_x_upper = 3
+CoordBase::boundary_size_y_upper = 3
+CoordBase::boundary_size_z_upper = 3
+CoordBase::boundary_shiftout_x_lower = 1
+CoordBase::boundary_shiftout_y_lower = 1
+CoordBase::boundary_shiftout_z_lower = 1
+CoordBase::boundary_shiftout_x_upper = 0
+CoordBase::boundary_shiftout_y_upper = 0
+CoordBase::boundary_shiftout_z_upper = 0
+
+CarpetRegrid2::regrid_every = 0
+CarpetRegrid2::num_centres = 1
+CarpetRegrid2::position_x_1 = 0.0
+CarpetRegrid2::position_y_1 = 0.0
+CarpetRegrid2::position_z_1 = 0.0
+CarpetRegrid2::num_levels_1 = 9
+CarpetRegrid2::radius_1[1] = 6.0
+CarpetRegrid2::radius_1[2] = 2.5
+CarpetRegrid2::radius_1[3] = 1.0
+CarpetRegrid2::radius_1[4] = 0.4
+CarpetRegrid2::radius_1[5] = 0.2
+CarpetRegrid2::radius_1[6] = 0.14
+CarpetRegrid2::radius_1[7] = 0.10
+CarpetRegrid2::radius_1[8] = 0.075
+
+Carpet::enable_all_storage = no
+Carpet::use_buffer_zones = "yes"
+Carpet::poison_new_timelevels = "yes"
+Carpet::check_for_poison = "no"
+Carpet::init_3_timelevels = no
+Carpet::init_fill_timelevels = "yes"
+Carpet::max_refinement_levels = 9
+Driver::ghost_size = 3
+Carpet::prolongation_order_space = 5
+Carpet::prolongation_order_time = 2
+
+CarpetLib::poison_new_memory = "yes"
+CarpetLib::poison_value = 114
+CarpetLib::support_staggered_operators = "yes"
+
+# Time integration
+Time::dtfac = 0.05
+Time::timestep_method = "courant_static"
+MoL::ODE_Method = "rk4"
+MoL::MoL_Intermediate_Steps = 4
+MoL::MoL_Num_Scratch_Levels = 1
+
+# Storage and coupling
+TmunuBase::stress_energy_storage = yes
+TmunuBase::stress_energy_at_RHS = yes
+TmunuBase::timelevels = 3
+TmunuBase::prolongation_type = none
+
+HydroBase::timelevels = 3
+HydroBase::prolongation_type = "none"
+ADMMacros::spatial_order = 4
+ADMBase::metric_type = "physical"
+SpaceMask::use_mask = "yes"
+
+# Horizon, global charges, and constraint diagnostics.  For this sol_01 ID,
+# COCAL reports M_ADM(asymptotic)=5.637887130602184e-2,
+# J_z(asymptotic)=3.843704759999407e-3, J_BH(AH)=2.003050596061518e-3,
+# and torus rest mass=7.230011033669107e-3.
+SphericalSurface::nsurfaces = 1
+SphericalSurface::name[0] = "BHT AH"
+SphericalSurface::maxntheta = 39
+SphericalSurface::maxnphi = 76
+SphericalSurface::ntheta[0] = 39
+SphericalSurface::nphi[0] = 76
+SphericalSurface::nghoststheta[0] = 2
+SphericalSurface::nghostsphi[0] = 2
+
+AHFinderDirect::N_horizons = 1
+AHFinderDirect::find_every = $diag_every
+AHFinderDirect::run_at_CCTK_POSTINITIAL = "yes"
+AHFinderDirect::run_at_CCTK_POSTSTEP = "yes"
+AHFinderDirect::verbose_level = "physics details"
+AHFinderDirect::print_timing_stats = "no"
+AHFinderDirect::which_surface_to_store_info[1] = 0
+AHFinderDirect::origin_x[1] = 0.0
+AHFinderDirect::origin_y[1] = 0.0
+AHFinderDirect::origin_z[1] = 0.0
+AHFinderDirect::initial_guess_method[1] = "coordinate sphere"
+AHFinderDirect::initial_guess__coord_sphere__x_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__y_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__z_center[1] = 0.0
+AHFinderDirect::initial_guess__coord_sphere__radius[1] = 7.92e-2
+AHFinderDirect::N_zones_per_right_angle[1] = 12
+AHFinderDirect::max_N_zones_per_right_angle = 12
+AHFinderDirect::max_allowable_horizon_radius[1] = 0.25
+AHFinderDirect::output_BH_diagnostics = "yes"
+AHFinderDirect::BH_diagnostics_base_file_name = "BH_diagnostics"
+AHFinderDirect::output_h_every = $diag_every
+AHFinderDirect::h_base_file_name = "h"
+AHFinderDirect::output_ASCII_files = "yes"
+AHFinderDirect::output_HDF5_files = "no"
+
+QuasiLocalMeasures::num_surfaces = 1
+QuasiLocalMeasures::surface_name[0] = "BHT AH"
+QuasiLocalMeasures::surface_index[0] = 0
+QuasiLocalMeasures::spatial_order = 4
+QuasiLocalMeasures::interpolator = "Lagrange polynomial interpolation"
+QuasiLocalMeasures::interpolator_options = "order=4"
+QuasiLocalMeasures::verbose = "no"
+QuasiLocalMeasures::output_vtk_every = $diag_every
+
+ADMMass::ADMMass_number = 2
+ADMMass::ADMMass_x_pos[0] = 0.0
+ADMMass::ADMMass_y_pos[0] = 0.0
+ADMMass::ADMMass_z_pos[0] = 0.0
+ADMMass::ADMMass_surface_distance[0] = 1.0
+ADMMass::ADMMass_volume_radius[0] = 1.0
+ADMMass::ADMMass_x_pos[1] = 0.0
+ADMMass::ADMMass_y_pos[1] = 0.0
+ADMMass::ADMMass_z_pos[1] = 0.0
+ADMMass::ADMMass_surface_distance[1] = 1.5
+ADMMass::ADMMass_volume_radius[1] = 1.5
+
+VolumeIntegrals_GRMHD::NumIntegrals = 1
+VolumeIntegrals_GRMHD::VolIntegral_out_every = $diag_every
+VolumeIntegrals_GRMHD::enable_file_output = 1
+VolumeIntegrals_GRMHD::outVolIntegral_dir = "./volume_integration"
+VolumeIntegrals_GRMHD::verbose = 1
+VolumeIntegrals_GRMHD::Integration_quantity_keyword[1] = "restmass"
+
+VolumeIntegrals_vacuum::HamiltonianVarString = "Baikal::HGF"
+VolumeIntegrals_vacuum::Momentum0VarString = "Baikal::MU0GF"
+VolumeIntegrals_vacuum::Momentum1VarString = "Baikal::MU1GF"
+VolumeIntegrals_vacuum::Momentum2VarString = "Baikal::MU2GF"
+VolumeIntegrals_vacuum::NumIntegrals = 3
+VolumeIntegrals_vacuum::VolIntegral_out_every = $diag_every
+VolumeIntegrals_vacuum::enable_file_output = 1
+VolumeIntegrals_vacuum::outVolIntegral_dir = "./volume_integration"
+VolumeIntegrals_vacuum::verbose = 1
+VolumeIntegrals_vacuum::Integration_quantity_keyword[1] = "ADM_Mass"
+VolumeIntegrals_vacuum::Integration_quantity_keyword[2] = "ADM_Angular_Momentum"
+VolumeIntegrals_vacuum::Integration_quantity_keyword[3] = "H_M_CnstraintsL2"
+
+# Initial data
+InitBase::initial_data_setup_method = "init_some_levels"
+COCAL_ID::COCAL_ID_PathToID = "/Users/mrizzo/phys_research/COCAL_IDs/bht/bhtD2.0_K1_g1.60_fAJS0.80_000_000_q1.85_l4.00_r0.40_sol_01"
+COCAL_ID::COCAL_ID_bht_fill_method = "smooth"
+COCAL_ID::COCAL_ID_read_tabulated_eos = "False"
+COCAL_ID::COCAL_ID_verbose = "True"
+
+ADMBase::initial_data = "CocalBHT"
+ADMBase::initial_lapse = "Cocal"
+ADMBase::initial_shift = "Cocal"
+ADMBase::initial_dtlapse = "zero"
+ADMBase::initial_dtshift = "zero"
+HydroBase::initial_hydro = "Cocal"
+HydroBase::initial_temperature = "zero"
+HydroBase::initial_Y_e = "one"
+HydroBase::initial_entropy = "zero"
+HydroBase::initial_Avec = "zero"
+HydroBase::initial_Aphi = "zero"
+HydroBase::initial_Bvec = "zero"
+
+ADMBase::metric_timelevels = 3
+ADMBase::lapse_timelevels = 3
+ADMBase::shift_timelevels = 3
+
+# Evolution
+ADMBase::evolution_method = "Baikal"
+ADMBase::lapse_evolution_method = "Baikal"
+ADMBase::shift_evolution_method = "Baikal"
+ADMBase::dtlapse_evolution_method = "Baikal"
+ADMBase::dtshift_evolution_method = "Baikal"
+
+Baikal::diss_strength = 0.2
+Baikal::eta = 0.36
+Baikal::lapse_floor = 1e-8
+
+GRHayLHD::Convert_to_HydroBase_every = $out_every
+
+# BHT D2.0_K1_g1.60 is a one-layer cold polytrope.
+GRHayLib::EOS_type = "Hybrid"
+GRHayLib::neos = 1
+GRHayLib::gamma_th = 1.6
+GRHayLib::k_ppoly0 = 1.0
+GRHayLib::gamma_ppoly_in = [1.6]
+
+GRHayLib::evolve_temperature = no
+GRHayLib::con2prim_routine = "Palenzuela1D"
+GRHayLib::con2prim_backup_routines[0] = "Newman1D"
+GRHayLib::rho_b_atm = 1e-12
+GRHayLib::rho_b_min = 1e-12
+GRHayLib::rho_b_max = 0.004
+GRHayLib::Y_e_atm = 0.5
+GRHayLib::Y_e_max = 1.0
+GRHayLib::T_atm = 1e-2
+GRHayLib::T_min = 1e-2
+GRHayLib::T_max = 90
+GRHayLib::Psi6threshold = 60
+GRHayLib::Lorenz_damping_factor = 0.1
+GRHayLib::calc_primitive_guess = yes
+
+NaNChecker::check_every = $out_every
+NaNChecker::action_if_found = "terminate"
+NaNChecker::check_vars = "
+  ADMBase::metric
+  ADMBase::lapse
+  ADMBase::shift
+  HydroBase::rho
+  HydroBase::eps
+  HydroBase::press
+  HydroBase::vel
+"
+
+# I/O
+IO::out_dir = ${parfile}
+IO::out_fileinfo = "all"
+IO::parfile_write = "no"
+IO::out_mode = "onefile"
+
+IOBasic::outInfo_every = $out_every
+IOBasic::outInfo_reductions = "minimum maximum"
+IOBasic::outInfo_vars = "
+  Carpet::physical_time_per_hour
+  ADMBase::alp
+  HydroBase::rho
+  HydroBase::press
+  Baikal::HGF
+"
+
+IOScalar::outScalar_every = $out_every
+IOScalar::one_file_per_group = "yes"
+IOScalar::all_reductions_in_one_file = "yes"
+IOScalar::outScalar_reductions = "norm1 norm2 norm_inf sum maximum minimum"
+IOScalar::outScalar_vars = "
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::vel
+  HydroBase::eps
+  ADMBase::lapse
+  ADMBase::shift
+  ADMMass::ADMMass_Masses
+  QuasiLocalMeasures::qlm_scalars
+  Baikal::HGF
+  Baikal::MU0GF
+  Baikal::MU1GF
+  Baikal::MU2GF
+  Carpet::timing{reductions='average'}
+"
+
+CarpetIOHDF5::checkpoint = "yes"
+IOUtil::checkpoint_dir = "checkpoints"
+IOUtil::checkpoint_ID = "no"
+IOUtil::checkpoint_every = -1
+IOUtil::checkpoint_every_walltime_hours = -1
+IOUtil::checkpoint_on_terminate = "yes"
+IOUtil::checkpoint_keep = 1
+IOUtil::recover = "autoprobe"
+IOUtil::recover_dir = "checkpoints"
+
+CarpetIOASCII::out0D_every = $diag_every
+CarpetIOASCII::one_file_per_group = "yes"
+CarpetIOASCII::out0D_vars = "
+  AHFinderDirect::ah_centroid
+  AHFinderDirect::ah_flags
+  AHFinderDirect::ah_origin
+  ADMMass::ADMMass_Masses
+  ADMMass::ADMMass_box
+  QuasiLocalMeasures::qlm_scalars
+  SphericalSurface::sf_active
+  SphericalSurface::sf_valid
+  SphericalSurface::sf_info
+  SphericalSurface::sf_origin
+  SphericalSurface::sf_radius
+"
+
+CarpetIOASCII::out1D_every = $out_every
+CarpetIOASCII::out1D_x = "yes"
+CarpetIOASCII::out1D_y = "no"
+CarpetIOASCII::out1D_z = "no"
+CarpetIOASCII::out1D_d = "yes"
+CarpetIOASCII::output_symmetry_points = "no"
+CarpetIOASCII::out1D_vars = "
+  ADMBase::lapse
+  ADMBase::shift
+  ADMBase::metric
+  ADMBase::curv
+  HydroBase::rho
+  HydroBase::press
+  HydroBase::eps
+  HydroBase::vel
+  Baikal::HGF
+  Baikal::MU0GF
+"
+
+CarpetIOHDF5::output_buffer_points = "no"
+CarpetIOHDF5::out2D_every = $out_every2d
+CarpetIOHDF5::out2D_vars = "
+  HydroBase::rho
+  HydroBase::vel
+  HydroBase::press
+  ADMBase::lapse
+  ADMBase::shift
+  ADMBase::metric
+  Baikal::HGF
+  Baikal::MU0GF
+"
+
+CarpetIOHDF5::out3D_every = $out_every3d
+CarpetIOHDF5::out3D_vars = "
+  HydroBase::rho
+  ADMBase::lapse
+"
+
+TimerReport::out_every = $diag_every
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers = "yes"
+TimerReport::output_all_timers_together = "yes"
+TimerReport::output_all_timers_readable = "yes"
+TimerReport::n_top_timers = 40
+
+SystemTopology::set_thread_bindings = "no"

@@ -4,6 +4,8 @@
 #include "Cocal/def_matter_parameter.f90"
 #include "Cocal/def_quantities.f90"
 #include "Cocal/def_bh_parameter.f90"
+#include "Cocal/def_bht_parameter.f90"
+
 #include "Cocal/def_peos_parameter.f90"
 #include "Cocal/def_teos_parameter.f90"
 
@@ -34,6 +36,7 @@
 #include "Cocal/interface_IO_input_WL_grav_export_hij.f90"
 #include "Cocal/interface_IO_input_grav_export_Kij.f90"
 #include "Cocal/interface_IO_input_CF_star_export.f90"
+#include "Cocal/interface_IO_input_matter_BHT_export.f90"
 #include "Cocal/interface_invhij_WL_export.f90"
 #include "Cocal/interface_index_vec_down2up_export.f90"
 #include "Cocal/interface_interpo_gr2fl_metric_CF_export.f90"
@@ -53,6 +56,7 @@
 #include "Cocal/IO_input_WL_grav_export_hij.f90"
 #include "Cocal/IO_input_grav_export_Kij.f90"
 #include "Cocal/IO_input_CF_star_export.f90"
+#include "Cocal/IO_input_matter_BHT_export.f90"
 #include "Cocal/invhij_WL_export.f90"
 #include "Cocal/index_vec_down2up_export.f90"
 #include "Cocal/interpo_gr2fl_metric_CF_export.f90"
@@ -72,6 +76,9 @@
 #include "Cocal/teos_initialize.f90"
 #include "Cocal/teos_q2hprho.f90"
 #include "Cocal/teos_lookup.f90"
+#include "Cocal/read_bht_parameter.f90"
+#include "Cocal/calc_bht_excision_radius.f90"
+
 #include "Cocal/copy_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_1dto2d_mpt.f90"
 #include "Cocal/copy_int_array_static_2dto3d_mpt.f90"
@@ -198,6 +205,54 @@ module COCAL_ID_data_bns
 
     logical, save :: have_read_data = .false.
 end module COCAL_ID_data_bns
+
+module COCAL_ID_data_bht
+    implicit none
+
+    ! Number of radial samples used by the fill extrapolation. Matching
+    ! 4-point Lagrange interpolation helpers used elsewhere in the reader.
+    integer, parameter :: bht_fill_points = 4
+    integer, parameter :: bht_nvars = 22
+    ! The shift slots contain beta_i while the excised region is filled. The
+    ! completed state is raised to ADMBase's beta^i convention before return.
+    integer, parameter :: BHT_ALP = 1, BHT_SHIFT_X = 2, BHT_SHIFT_Y = 3, BHT_SHIFT_Z = 4
+    integer, parameter :: BHT_GXX = 5, BHT_GXY = 6, BHT_GXZ = 7
+    integer, parameter :: BHT_GYY = 8, BHT_GYZ = 9, BHT_GZZ = 10
+    integer, parameter :: BHT_KXX = 11, BHT_KXY = 12, BHT_KXZ = 13
+    integer, parameter :: BHT_KYY = 14, BHT_KYZ = 15, BHT_KZZ = 16
+    integer, parameter :: BHT_RHO = 17, BHT_PRESS = 18, BHT_EPS = 19
+    integer, parameter :: BHT_VX = 20, BHT_VY = 21, BHT_VZ = 22
+
+    real(8), save :: ome, ber, radi
+    real(8), save :: rexc, r_ah, r_eh, r_ring, xx_bh, yy_bh, zz_bh
+    real(8), save :: extra_points_dr, trk_xi, trk_npow
+    integer, save :: idpar_fill_points = 0
+    logical, save :: have_read_data = .false.
+    logical, save :: smooth_center_attempted = .false.
+    logical, save :: smooth_center_valid = .false.
+    logical, save :: bht_tabulated_eos = .false.
+
+    real(8), save :: lap_cent, gtx_cent, gty_cent, gtz_cent
+    real(8), save :: gxx_cent, gxy_cent, gxz_cent, gyy_cent, gyz_cent, gzz_cent
+    real(8), save :: kxx_cent, kxy_cent, kxz_cent, kyy_cent, kyz_cent, kzz_cent
+    real(8), save :: rho_cent, vx_cent, vy_cent, vz_cent
+    real(8), save :: smooth_center(bht_nvars)
+
+    real(8), pointer, save :: emdg(:,:,:) => NULL(), omeg(:,:,:) => NULL()
+    real(8), pointer, save :: psi(:,:,:) => NULL(), alph(:,:,:) => NULL()
+    real(8), pointer, save :: bvxd(:,:,:) => NULL(), bvyd(:,:,:) => NULL(), bvzd(:,:,:) => NULL()
+    real(8), pointer, save :: bvxu(:,:,:) => NULL(), bvyu(:,:,:) => NULL(), bvzu(:,:,:) => NULL()
+    real(8), pointer, save :: hxxd(:,:,:) => NULL(), hxyd(:,:,:) => NULL(), hxzd(:,:,:) => NULL()
+    real(8), pointer, save :: hyyd(:,:,:) => NULL(), hyzd(:,:,:) => NULL(), hzzd(:,:,:) => NULL()
+    real(8), pointer, save :: hxxu(:,:,:) => NULL(), hxyu(:,:,:) => NULL(), hxzu(:,:,:) => NULL()
+    real(8), pointer, save :: hyyu(:,:,:) => NULL(), hyzu(:,:,:) => NULL(), hzzu(:,:,:) => NULL()
+    real(8), pointer, save :: kxxa(:,:,:) => NULL(), kxya(:,:,:) => NULL(), kxza(:,:,:) => NULL()
+    real(8), pointer, save :: kyya(:,:,:) => NULL(), kyza(:,:,:) => NULL(), kzza(:,:,:) => NULL()
+end module COCAL_ID_data_bht
+
+#include "Cocal/cocal_id_bht_fill.f90"
+
+
 
 subroutine COCAL_ID_read_rns_data(CCTK_ARGUMENTS)
 
@@ -496,6 +551,200 @@ subroutine COCAL_ID_deallocate_bns(CCTK_ARGUMENTS)
 
 end subroutine COCAL_ID_deallocate_bns
 
+subroutine COCAL_ID_read_bht_data(CCTK_ARGUMENTS)
+
+  use COCAL_ID_grid_parameter, eps_cocal => eps
+  use COCAL_ID_def_bh_parameter, only : mass_bh, spin_bh
+  use COCAL_ID_coordinate_grav_r
+  use COCAL_ID_coordinate_grav_phi
+  use COCAL_ID_coordinate_grav_theta
+  use COCAL_ID_coordinate_grav_extended
+  use COCAL_ID_trigonometry_grav_theta
+  use COCAL_ID_trigonometry_grav_phi
+  use COCAL_ID_interface_IO_input_CF_grav_export
+  use COCAL_ID_interface_IO_input_WL_grav_export_hij
+  use COCAL_ID_interface_IO_input_grav_export_Kij
+  use COCAL_ID_interface_IO_input_matter_BHT_export
+  use COCAL_ID_interface_invhij_WL_export
+  use COCAL_ID_interface_index_vec_down2up_export
+  use COCAL_ID_data_bht
+
+  implicit none
+    DECLARE_CCTK_ARGUMENTS
+    DECLARE_CCTK_FUNCTIONS
+    DECLARE_CCTK_PARAMETERS
+
+    character*400 :: COCAL_ID_PathToIDf, COCAL_ID_readformatf, outstr
+    integer :: COCAL_ID_PathToIDf_len
+    logical :: idpar_cenvals_loaded
+
+    !$OMP critical(COCAL_ID_bht_read)
+    if (.not. have_read_data) then
+       if (COCAL_ID_verbose == 1) call CCTK_INFO("Reading COCAL BHT data once for this MPI rank...")
+       call CCTK_FortranString(COCAL_ID_PathToIDf_len, COCAL_ID_PathToID, COCAL_ID_PathToIDf)
+       COCAL_ID_readformatf = "23.15"
+
+       call COCAL_ID_bht_reset_fill_state()
+
+       call read_parameter_cactus(COCAL_ID_PathToIDf)
+       call COCAL_ID_read_bht_parameter_cactus(COCAL_ID_PathToIDf)
+       if (mass_bh <= 0.0d0) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT data: mass_bh must be positive.")
+       end if
+       if (dabs(spin_bh) > mass_bh) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT data: abs(spin_bh) exceeds mass_bh.")
+       end if
+       call COCAL_ID_calc_bht_excision_radius
+       bht_tabulated_eos = COCAL_ID_read_tabulated_eos == 1
+       if (COCAL_ID_read_tabulated_eos == 1) then
+          call COCAL_ID_teos_initialize_cactus(COCAL_ID_PathToIDf)
+       else
+          call COCAL_ID_peos_initialize_cactus(COCAL_ID_PathToIDf)
+       end if
+
+       call grid_r_bht('eBH')
+       call grid_theta
+       call trig_grav_theta
+       call grid_phi
+       call allocate_trig_grav_mphi
+       call trig_grav_phi
+       call grid_extended
+
+       rexc = rg(0)
+       r_eh = mass_bh + dsqrt(max(mass_bh*mass_bh - spin_bh*spin_bh, 0.0d0))
+       r_ring = dabs(spin_bh)
+       r_ah = 0.99d0*r_eh
+       allocate ( emdg(0:nrg,0:ntg,0:npg))
+       allocate ( omeg(0:nrg,0:ntg,0:npg))
+       allocate (  psi(0:nrg,0:ntg,0:npg))
+       allocate ( alph(0:nrg,0:ntg,0:npg))
+       allocate ( bvxd(0:nrg,0:ntg,0:npg))
+       allocate ( bvyd(0:nrg,0:ntg,0:npg))
+       allocate ( bvzd(0:nrg,0:ntg,0:npg))
+       allocate ( bvxu(0:nrg,0:ntg,0:npg))
+       allocate ( bvyu(0:nrg,0:ntg,0:npg))
+       allocate ( bvzu(0:nrg,0:ntg,0:npg))
+       allocate ( hxxd(0:nrg,0:ntg,0:npg))
+       allocate ( hxyd(0:nrg,0:ntg,0:npg))
+       allocate ( hxzd(0:nrg,0:ntg,0:npg))
+       allocate ( hyyd(0:nrg,0:ntg,0:npg))
+       allocate ( hyzd(0:nrg,0:ntg,0:npg))
+       allocate ( hzzd(0:nrg,0:ntg,0:npg))
+       allocate ( hxxu(0:nrg,0:ntg,0:npg))
+       allocate ( hxyu(0:nrg,0:ntg,0:npg))
+       allocate ( hxzu(0:nrg,0:ntg,0:npg))
+       allocate ( hyyu(0:nrg,0:ntg,0:npg))
+       allocate ( hyzu(0:nrg,0:ntg,0:npg))
+       allocate ( hzzu(0:nrg,0:ntg,0:npg))
+       allocate ( kxxa(0:nrg,0:ntg,0:npg))
+       allocate ( kxya(0:nrg,0:ntg,0:npg))
+       allocate ( kxza(0:nrg,0:ntg,0:npg))
+       allocate ( kyya(0:nrg,0:ntg,0:npg))
+       allocate ( kyza(0:nrg,0:ntg,0:npg))
+       allocate ( kzza(0:nrg,0:ntg,0:npg))
+
+       emdg=0.0d0; omeg=0.0d0
+       psi=0.0d0; alph=0.0d0
+       bvxd=0.0d0; bvyd=0.0d0; bvzd=0.0d0
+       bvxu=0.0d0; bvyu=0.0d0; bvzu=0.0d0
+       hxxd=0.0d0; hxyd=0.0d0; hxzd=0.0d0
+       hyyd=0.0d0; hyzd=0.0d0; hzzd=0.0d0
+       hxxu=0.0d0; hxyu=0.0d0; hxzu=0.0d0
+       hyyu=0.0d0; hyzu=0.0d0; hzzu=0.0d0
+       kxxa=0.0d0; kxya=0.0d0; kxza=0.0d0
+       kyya=0.0d0; kyza=0.0d0; kzza=0.0d0
+
+       call COCAL_ID_IO_input_CF_grav_export(trim(COCAL_ID_PathToIDf)//"/rnsgra_3D.las", &
+          & COCAL_ID_readformatf, psi, alph, bvxd, bvyd, bvzd)
+       call COCAL_ID_IO_input_WL_grav_export_hij(trim(COCAL_ID_PathToIDf)//"/rnsgra_hij_3D.las", &
+          & COCAL_ID_readformatf, hxxd, hxyd, hxzd, hyyd, hyzd, hzzd)
+       call COCAL_ID_IO_input_grav_export_Kij(trim(COCAL_ID_PathToIDf)//"/rnsgra_Kij_3D.las", &
+          & kxxa, kxya, kxza, kyya, kyza, kzza)
+       call COCAL_ID_IO_input_matter_BHT_export(trim(COCAL_ID_PathToIDf)//"/rnsflu_3D.las", &
+          & COCAL_ID_readformatf, emdg, omeg, ome, ber, radi)
+
+       call COCAL_ID_invhij_WL_export(hxxd, hxyd, hxzd, hyyd, hyzd, hzzd, hxxu, hxyu, hxzu, hyyu, hyzu, hzzu)
+       call COCAL_ID_index_vec_down2up_export(hxxu, hxyu, hxzu, hyyu, hyzu, hzzu, bvxu, bvyu, bvzu, bvxd, bvyd, bvzd)
+
+       if (radi <= 0.0d0) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT data: radi must be positive.")
+       end if
+
+       if (CCTK_EQUALS(COCAL_ID_bht_fill_method, "IDpar")) then
+          call COCAL_ID_bht_read_IDpar_cenvals(COCAL_ID_PathToIDf, idpar_cenvals_loaded)
+          if (.not. idpar_cenvals_loaded) then
+             call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT IDpar fill requires a readable 28-value read_bin_AH.par.")
+          end if
+          if (idpar_fill_points /= bht_fill_points) then
+             call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT IDpar fill requires exactly four radial interpolation points.")
+          end if
+          ! Legacy read_bin_AH.par positions and radii are in Cactus units.
+          ! The fill machinery uses dimensionless COCAL radii internally.
+          r_ah = r_ah/radi
+          extra_points_dr = extra_points_dr/radi
+       else
+          call COCAL_ID_bht_set_smooth_scales()
+          call COCAL_ID_bht_compute_smooth_center()
+          if (.not. smooth_center_valid) then
+             call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT smooth-center extrapolation failed.")
+          end if
+       end if
+
+       if (r_ah <= rexc) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT fill: horizon radius must exceed the excision radius.")
+       end if
+       if (extra_points_dr <= 0.0d0) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT fill: radial sample spacing must be positive.")
+       end if
+       if (trk_xi < 0.0d0 .or. (trk_xi > 0.0d0 .and. trk_npow <= 0.0d0)) then
+          call CCTK_WARN(CCTK_WARN_ABORT, "Invalid COCAL BHT fill: trace damping parameters are inconsistent.")
+       end if
+
+       if (COCAL_ID_verbose == 1) then
+          write(outstr,'(a,1p,4e20.12)') "BHT radii rexc, r_fill, r_EH, r_ring: ", rexc, r_ah, r_eh, r_ring
+          call CCTK_INFO(trim(outstr))
+          write(outstr,'(a,1p,3e20.12)') "BHT fill dr, trk_xi, trk_npow: ", extra_points_dr, trk_xi, trk_npow
+          call CCTK_INFO(trim(outstr))
+          write(outstr,'(a,1p,3e20.12)') "BHT ome, ber, radi: ", ome, ber, radi
+          call CCTK_INFO(trim(outstr))
+          write(outstr,'(a,1p,2e20.12)') "BHT rexc, r_AH: ", rexc, r_ah
+          call CCTK_INFO(trim(outstr))
+       end if
+
+       have_read_data = .true.
+       if (COCAL_ID_verbose == 1) call CCTK_INFO("Done reading COCAL BHT data for this MPI rank.")
+    end if
+    !$OMP END CRITICAL(COCAL_ID_bht_read)
+end subroutine COCAL_ID_read_bht_data
+
+subroutine COCAL_ID_deallocate_bht(CCTK_ARGUMENTS)
+
+  use COCAL_ID_data_bht
+
+  implicit none
+    DECLARE_CCTK_ARGUMENTS
+    DECLARE_CCTK_FUNCTIONS
+    DECLARE_CCTK_PARAMETERS
+
+    if (.not. have_read_data) then
+       if (COCAL_ID_verbose == 1) call CCTK_INFO("No BHT data read, skipping deallocation...")
+       return
+    end if
+
+    if (COCAL_ID_verbose == 1) call CCTK_INFO("Deallocating COCAL BHT data...")
+
+    deallocate(emdg, omeg, psi, alph)
+    deallocate(bvxd, bvyd, bvzd, bvxu)
+    deallocate(bvyu, bvzu, hxxd, hxyd)
+    deallocate(hxzd, hyyd, hyzd, hzzd)
+    deallocate(hxxu, hxyu, hxzu, hyyu)
+    deallocate(hyzu, hzzu, kxxa, kxya)
+    deallocate(kxza, kyya, kyza, kzza)
+
+    have_read_data = .false.
+    if (COCAL_ID_verbose == 1) call CCTK_INFO("Done deallocating COCAL BHT data.")
+end subroutine COCAL_ID_deallocate_bht
+
 !RNS Routine
 subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
 
@@ -538,17 +787,18 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
 
     real(8) :: xcac, ycac, zcac ! Cactus coordinates
     real(8) :: dxcac, dycac, dzcac
-    real(8) :: xcoc, ycoc, zcoc ! COCAL coordinates
-    real(8) :: emdca, omefca, psica, alphca, psi4ca
-    real(8) :: bvxdca, bvydca, bvzdca
+    real(8) :: xcoc, ycoc, zcoc, rcoc ! COCAL coordinates
+    real(8) :: emdca,  omefca, psica,  alphca, psi4ca, psif4ca
+    real(8) :: bvxdca, bvydca, bvzdca, bvxuca, bvyuca, bvzuca
     real(8) :: hxxdca, hxydca, hxzdca, hyydca, hyzdca, hzzdca
-    real(8) :: hca, preca, rhoca, eneca
+    real(8) :: hxxuca, hxyuca, hxzuca, hyyuca, hyzuca, hzzuca
+    real(8) :: hca, preca, rhoca, eneca, epsca
     real(8) :: kxxca, kxyca, kxzca, kyyca, kyzca, kzzca
     real(8) :: vxu, vyu, vzu
     real(8) :: bxcor, bycor, bzcor, bvxufca, bvyufca, bvzufca, psifca, alphfca
     real(8) :: gxx1, gxy1, gxz1, gyy1, gyz1, gzz1, kxx1, kxy1, kxz1, kyy1, kyz1, kzz1
-    real(8) :: va1, vaxd1, vayd1, vazd1, fxyd1, fxzd1, fyzd1
-    real(8) :: vaca, vaxdca, vaydca, vazdca, fxydca, fxzdca, fyzdca
+    real(8) :: va1, vaxd1, vayd1, vazd1, fxd1, fyd1, fzd1, fxyd1, fxzd1, fyzd1
+    real(8) :: vaca, vaxdca, vaydca, vazdca, fxdca, fydca, fzdca, fxydca, fxzdca, fyzdca
     real(8) :: utfca, uxfca, uyfca, uzfca ! Fluid 4 vel
     real(8) :: gr_wr(4), gr_wth(4), gr_wphi(4)
     real(8) :: fl_wr(4), fl_wth(4), fl_wphi(4)
@@ -561,11 +811,11 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
     kxx1=0.0d0; kxy1=0.0d0; kxz1=0.0d0; kyy1=0.0d0; kyz1=0.0d0; kzz1=0.0d0
     kxxca=0.0d0; kxyca=0.0d0; kxzca=0.0d0; kyyca=0.0d0; kyzca=0.0d0; kzzca=0.0d0
 
-    vaca=0.0d0; vaxdca=0.0d0; vaydca=0.0d0; vazdca=0.0d0 ! (phi, A)
-    fxydca=0.0d0; fxzdca=0.0d0; fyzdca=0.0d0         ! Faraday tensor
-    fxyd1=0.0d0; fxzd1=0.0d0; fyzd1=0.0d0
-    va1=0.0d0; vaxd1=0.0d0; vayd1=0.0d0; vazd1=0.0d0 ! (phi, A) and (Aphi, Avec[3])
-    utfca=0.0d0; uxfca=0.0d0; uyfca=0.0d0; uzfca=0.0d0 ! Fluid 4-velocity
+    vaca=0.0d0;  vaxdca=0.0d0;  vaydca=0.0d0;  vazdca=0.0d0;                              ! (phi,A)
+    fxdca=0.0d0; fydca=0.0d0; fzdca=0.0d0; fxydca=0.0d0; fxzdca=0.0d0; fyzdca=0.0d0;     ! Faraday Tensor
+    fxd1=0.0d0;  fyd1=0.0d0;  fzd1=0.0d0;  fxyd1=0.0d0;  fxzd1=0.0d0; fyzd1=0.0d0;          !
+    va1=0.0d0;  vaxd1=0.0d0; vayd1=0.0d0; vazd1=0.0d0;                                      !(phi,A) (Aphi, Avec[3]) & (Bvec[3])
+    utfca=0.0d0;  uxfca=0.0d0;  uyfca=0.0d0;  uzfca=0.0d0;                                  ! Fluid 4 vel (vel[3])
 
     nx = cctk_lsh(1)
     ny = cctk_lsh(2)
@@ -612,12 +862,12 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
     found_nan_gxx = .false.
     !$OMP parallel do collapse(3) default(shared) schedule(static) &
     !$OMP& reduction(.or.:found_nan_gxx) &
-    !$OMP& private(i,j,k,xcac,ycac,zcac,xcoc,ycoc,zcoc,emdca,omefca,psica,alphca,psi4ca, &
-    !$OMP& bvxdca,bvydca,bvzdca,hxxdca,hxydca,hxzdca,hyydca,hyzdca,hzzdca, &
+    !$OMP& private(i,j,k,xcac,ycac,zcac,xcoc,ycoc,zcoc,emdca,omefca,psica,alphca,psi4ca,psif4ca, &
+    !$OMP& bvxdca,bvydca,bvzdca,bvxuca,bvyuca,bvzuca,hxxdca,hxydca,hxzdca,hyydca,hyzdca,hzzdca, &
     !$OMP& hca,preca,rhoca,eneca,kxxca,kxyca,kxzca,kyyca,kyzca,kzzca,vxu,vyu,vzu,bxcor,bycor,bzcor, &
     !$OMP& bvxufca,bvyufca,bvzufca,psifca,alphfca,gxx1,gxy1,gxz1,gyy1,gyz1,gzz1,kxx1,kxy1,kxz1, &
-    !$OMP& kyy1,kyz1,kzz1,va1,vaxd1,vayd1,vazd1,fxyd1,fxzd1,fyzd1,vaca,vaxdca, &
-    !$OMP& vaydca,vazdca,fxydca,fxzdca,fyzdca,utfca,uxfca,uyfca,uzfca, &
+    !$OMP& kyy1,kyz1,kzz1,va1,vaxd1,vayd1,vazd1,fxd1,fyd1,fzd1,fxyd1,fxzd1,fyzd1,vaca,vaxdca, &
+    !$OMP& vaydca,vazdca,fxdca,fydca,fzdca,fxydca,fxzdca,fyzdca,utfca,uxfca,uyfca,uzfca, &
     !$OMP& gr_irgex4,gr_itgex4,gr_ipgex4,fl_irgex4,fl_itgex4,fl_ipgex4,gr_wr,gr_wth,gr_wphi, &
     !$OMP& fl_wr,fl_wth,fl_wphi,outside_fluid)
     do k = 1, nz
@@ -641,6 +891,10 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                 call COCAL_ID_cgr_4th_apply(bvxd, bvxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                 call COCAL_ID_cgr_4th_apply(bvyd, bvydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                 call COCAL_ID_cgr_4th_apply(bvzd, bvzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+
+                call COCAL_ID_cgr_4th_apply(bvxu, bvxuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Repeats itself for CF
+                call COCAL_ID_cgr_4th_apply(bvyu, bvyuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                call COCAL_ID_cgr_4th_apply(bvzu, bvzuca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
 
                 call COCAL_ID_cgr_4th_apply(hxxd, hxxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Trivial for CF, 0 = 0
                 call COCAL_ID_cgr_4th_apply(hxyd, hxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
@@ -684,6 +938,9 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
                       call COCAL_ID_cgr_4th_apply(vayd, vaydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(vazd, vazdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                    else if (COCAL_ID_read_magnetic_potential == 0) then
+                      call COCAL_ID_cgr_4th_apply(fxd,   fxdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi) !Faraday/fields
+                      call COCAL_ID_cgr_4th_apply(fyd,   fydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
+                      call COCAL_ID_cgr_4th_apply(fzd,   fzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fxyd, fxydca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fxzd, fxzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
                       call COCAL_ID_cgr_4th_apply(fyzd, fyzdca, gr_irgex4, gr_itgex4, gr_ipgex4, gr_wr, gr_wth, gr_wphi)
@@ -693,6 +950,8 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
              bxcor = bvxufca + omefca*(-ycoc)
              bycor = bvyufca + omefca*(xcoc)
              bzcor = bvzufca
+             psif4ca = psifca**4
+
              psi4ca = psica**4
 
              if (dabs(emdca) > 1.0d-14) then
@@ -843,6 +1102,96 @@ subroutine COCAL_ID_rns(CCTK_ARGUMENTS)
 
     if (COCAL_ID_verbose == 1) call CCTK_INFO("COCAL: finishing...")
 END subroutine COCAL_ID_rns
+
+subroutine COCAL_ID_bht(CCTK_ARGUMENTS)
+
+  use COCAL_ID_data_bht
+  implicit none
+    DECLARE_CCTK_ARGUMENTS
+    DECLARE_CCTK_FUNCTIONS
+    DECLARE_CCTK_PARAMETERS
+
+    integer :: i, j, k, nx, ny, nz
+    real(8) :: bht_point_vals(bht_nvars)
+    logical :: ok, use_IDpar, interpolation_failed
+    logical :: bool_metric_curv, bool_lapse, bool_shift, bool_hydro
+
+    if (.not. have_read_data) call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID_bht called before COCAL_ID_read_bht_data completed.")
+
+    nx = cctk_lsh(1)
+    ny = cctk_lsh(2)
+    nz = cctk_lsh(3)
+
+    bool_metric_curv = CCTK_EQUALS(initial_data, "CocalBHT")
+    bool_lapse = CCTK_EQUALS(initial_lapse, "Cocal")
+    bool_shift = CCTK_EQUALS(initial_shift, "Cocal")
+    bool_hydro = CCTK_EQUALS(initial_hydro, "Cocal")
+    use_IDpar = CCTK_EQUALS(COCAL_ID_bht_fill_method, "IDpar")
+
+    if (CCTK_EQUALS(initial_Bvec, "Cocal") .or. CCTK_EQUALS(initial_Avec, "Cocal") .or. CCTK_EQUALS(initial_Aphi, "Cocal")) then
+       call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT is treated as unmagnetized; use HydroBase magnetic/vector-potential initial data = zero.")
+    end if
+
+    if (COCAL_ID_verbose == 1) then
+       if (use_IDpar) then
+          call CCTK_INFO("COCAL BHT fill: legacy center anchors from read_bin_AH.par")
+       else
+          call CCTK_INFO("COCAL BHT fill: smooth exterior extrapolation")
+       end if
+    end if
+
+    if (.not. use_IDpar .and. .not. smooth_center_valid) then
+       call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT smooth-center extrapolation failed.")
+    end if
+
+    interpolation_failed = .false.
+    !$OMP parallel do collapse(3) default(shared) schedule(static) &
+    !$OMP& private(i,j,k,ok,bht_point_vals) reduction(.or.:interpolation_failed)
+    do k = 1, nz
+       do j = 1, ny
+          do i = 1, nx
+             call COCAL_ID_bht_fill_point(x(i,j,k), y(i,j,k), z(i,j,k), use_IDpar, ok, bht_point_vals)
+             if (.not. ok) then
+                interpolation_failed = .true.
+             else
+                if (bool_lapse) alp(i,j,k) = bht_point_vals(BHT_ALP)
+                if (bool_shift) then
+                   betax(i,j,k) = bht_point_vals(BHT_SHIFT_X)
+                   betay(i,j,k) = bht_point_vals(BHT_SHIFT_Y)
+                   betaz(i,j,k) = bht_point_vals(BHT_SHIFT_Z)
+                end if
+                if (bool_hydro) then
+                   rho(i,j,k) = bht_point_vals(BHT_RHO)
+                   press(i,j,k) = bht_point_vals(BHT_PRESS)
+                   eps(i,j,k) = bht_point_vals(BHT_EPS)
+                   vel(i,j,k,1) = bht_point_vals(BHT_VX)
+                   vel(i,j,k,2) = bht_point_vals(BHT_VY)
+                   vel(i,j,k,3) = bht_point_vals(BHT_VZ)
+                end if
+                if (bool_metric_curv) then
+                   gxx(i,j,k) = bht_point_vals(BHT_GXX)
+                   gxy(i,j,k) = bht_point_vals(BHT_GXY)
+                   gxz(i,j,k) = bht_point_vals(BHT_GXZ)
+                   gyy(i,j,k) = bht_point_vals(BHT_GYY)
+                   gyz(i,j,k) = bht_point_vals(BHT_GYZ)
+                   gzz(i,j,k) = bht_point_vals(BHT_GZZ)
+                   kxx(i,j,k) = bht_point_vals(BHT_KXX)
+                   kxy(i,j,k) = bht_point_vals(BHT_KXY)
+                   kxz(i,j,k) = bht_point_vals(BHT_KXZ)
+                   kyy(i,j,k) = bht_point_vals(BHT_KYY)
+                   kyz(i,j,k) = bht_point_vals(BHT_KYZ)
+                   kzz(i,j,k) = bht_point_vals(BHT_KZZ)
+                end if
+             end if
+          end do
+       end do
+    end do
+    !$OMP end parallel do
+
+    if (interpolation_failed) call CCTK_WARN(CCTK_WARN_ABORT, "COCAL BHT interpolation failed.")
+end subroutine COCAL_ID_bht
+
+
 
 !!!BNS ROUTINE NOW
 !_____________________________________
@@ -1305,12 +1654,14 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      DECLARE_CCTK_FUNCTIONS
      DECLARE_CCTK_PARAMETERS
      integer :: i, j, k, nx, ny, nz
+     integer :: impt_ex, ico, irr, isp
+
      logical ::  bool_metric_curv, bool_lapse, bool_shift, bool_hydro, found_nan_gxx
 
      real(8) :: huta, alphfca2
      real(8) :: vepxfca, vepyfca, vepzfca
 
-     real(8) :: psifcacp, wxspfca, wyspfca, wzspfca, wdvep, w2, wterm
+     real(8) :: confpow, psifcacp, wxspfca, wyspfca, wzspfca, wdvep, w2, wterm
      real(long) ::  fr4wxspf(4) , ft4wxspf(4) , fp4wxspf(4)
      real(long) ::  fr4wyspf(4) , ft4wyspf(4) , fp4wyspf(4)
      real(long) ::  fr4wzspf(4) , ft4wzspf(4) , fp4wzspf(4)
@@ -1322,12 +1673,12 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      character(30) :: char1
      character(400) :: outstr
      character(len=1) :: np(5) = (/'1', '2','3', '4', '5'/)
-     real(8) :: rrcm, xc_p1, yc_p1, zc_p1, xc_p2, yc_p2, zc_p2
+     real(8) :: rrcm, xc,yc,zc, xc_p1, yc_p1, zc_p1, xc_p2, yc_p2, zc_p2
      real(8) :: xc_p3, yc_p3, zc_p3
      real(8) :: xcac, ycac, zcac
      real(8) :: xcoc, ycoc, zcoc, xmid_tol
-     real(8) :: emdca, psica, alphca, bvxdca, bvydca, bvzdca, psi4ca, psif4ca
-     real(8) :: hca, preca, rhoca, eneca
+     real(8) :: emdca, vepca, psica, alphca, bvxdca, bvydca, bvzdca, psi4ca, psif4ca
+     real(8) :: hca, preca, rhoca, eneca, epsca
      real(8) :: vxu, vyu, vzu, lam_p1, lam_p2
      real(8) :: bxcor, bycor, bzcor, bvxdfca, bvydfca, bvzdfca, psifca, alphfca
      real(8) :: gxx1, gxy1, gxz1, gyy1, gyz1, gzz1, kxx1, kxy1, kxz1, kyy1, kyz1, kzz1
@@ -1335,7 +1686,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      real(long) ::  rc_p1, thc_p1, phic_p1, varpic_p1, rcf_p1, rsca_p1
      real(long) ::  rc_p2, thc_p2, phic_p2, varpic_p2, rcf_p2, rsca_p2
      real(long) ::  rc_p3, thc_p3, phic_p3, varpic_p3
-     real(long) ::  r4(4), th4(4), phi4(4)
+     real(long) ::  r4(4), th4(4), phi4(4), fr4(4), ft4(4), fp4(4)
      real(long) ::  wr4(4), wth4(4), wphi4(4)
      real(long) ::  fr4psi(4)   , ft4psi(4)   , fp4psi(4)
      real(long) ::  fr4alph(4)  , ft4alph(4)  , fp4alph(4)
@@ -1393,17 +1744,17 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
      found_nan_gxx = .false.
      !$OMP parallel do collapse(3) default(shared) schedule(static) &
      !$OMP& reduction(.or.:found_nan_gxx) &
-     !$OMP& private(i,j,k,huta,alphfca2,vepxfca,vepyfca,vepzfca, &
+     !$OMP& private(i,j,k,impt_ex,ico,irr,isp,huta,alphfca2,vepxfca,vepyfca,vepzfca,confpow, &
      !$OMP& psifcacp,wxspfca,wyspfca,wzspfca,wdvep,w2,wterm,fr4wxspf,ft4wxspf,fp4wxspf, &
      !$OMP& fr4wyspf,ft4wyspf,fp4wyspf,fr4wzspf,ft4wzspf,fp4wzspf,fr4vepxf,ft4vepxf, &
-     !$OMP& fp4vepxf,fr4vepyf,ft4vepyf,fp4vepyf,fr4vepzf,ft4vepzf,fp4vepzf,rrcm, &
+     !$OMP& fp4vepxf,fr4vepyf,ft4vepyf,fp4vepyf,fr4vepzf,ft4vepzf,fp4vepzf,rrcm,xc,yc,zc, &
      !$OMP& xc_p1,yc_p1,zc_p1,xc_p2,yc_p2,zc_p2,xc_p3,yc_p3,zc_p3,xcac,ycac,zcac,xcoc,ycoc, &
-     !$OMP& zcoc,emdca,psica,alphca,bvxdca,bvydca,bvzdca,psi4ca,psif4ca,hca,preca, &
-     !$OMP& rhoca,eneca,vxu,vyu,vzu,lam_p1,lam_p2,bxcor,bycor,bzcor,bvxdfca,bvydfca, &
+     !$OMP& zcoc,emdca,vepca,psica,alphca,bvxdca,bvydca,bvzdca,psi4ca,psif4ca,hca,preca, &
+     !$OMP& rhoca,eneca,epsca,vxu,vyu,vzu,lam_p1,lam_p2,bxcor,bycor,bzcor,bvxdfca,bvydfca, &
      !$OMP& bvzdfca,psifca,alphfca,gxx1,gxy1,gxz1,gyy1,gyz1,gzz1,kxx1,kxy1,kxz1,kyy1, &
      !$OMP& kyz1,kzz1,axx,axy,axz,ayy,ayz,azz,rc_p1,thc_p1,phic_p1,varpic_p1,rcf_p1, &
      !$OMP& rsca_p1,rc_p2,thc_p2,phic_p2,varpic_p2,rcf_p2,rsca_p2,rc_p3,thc_p3,phic_p3, &
-     !$OMP& varpic_p3,r4,th4,phi4,wr4,wth4,wphi4,fr4psi,ft4psi,fp4psi,fr4alph, &
+     !$OMP& varpic_p3,r4,th4,phi4,fr4,ft4,fp4,wr4,wth4,wphi4,fr4psi,ft4psi,fp4psi,fr4alph, &
      !$OMP& ft4alph,fp4alph,fr4bvxd,ft4bvxd,fp4bvxd,fr4bvyd,ft4bvyd,fp4bvyd,fr4bvzd, &
      !$OMP& ft4bvzd,fp4bvzd,fr4axx,ft4axx,fp4axx,fr4axy,ft4axy,fp4axy,fr4axz,ft4axz, &
      !$OMP& fp4axz,fr4ayy,ft4ayy,fp4ayy,fr4ayz,ft4ayz,fp4ayz,fr4azz,ft4azz,fp4azz, &
@@ -2140,7 +2491,7 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
          !   write(6,'(a6,e20.12)') "vzu  =", vzu
          end do
        end do
-     end do
+      end do
      !$OMP end parallel do
 
      if (found_nan_gxx) call CCTK_WARN(CCTK_WARN_ABORT, "NaN in gxx")
