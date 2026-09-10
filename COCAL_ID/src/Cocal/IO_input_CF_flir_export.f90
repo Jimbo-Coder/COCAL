@@ -1,10 +1,10 @@
-subroutine COCAL_ID_IO_input_CF_flir_export(filenm,coc2cac_readformat,emd,vep,ome,ber,radi)
+subroutine COCAL_ID_IO_input_CF_flir_export(filenm,coc2cac_readformat,emd,vep,ome,ber,radi,xcm)
 
 use COCAL_ID_phys_constant, only : long, nnrg, nntg, nnpg
 implicit none
   integer :: ir, it, ip, nrtmp, nttmp, nptmp
   real(8), pointer :: emd(:,:,:), vep(:,:,:), rs(:,:)
-  real(8) :: ome, ber, radi
+  real(8) :: ome, ber, radi, xcm
   character(len=*) :: filenm,coc2cac_readformat
 !
 ! --- Matter
@@ -18,7 +18,8 @@ implicit none
          end do
       end do
    end do
-   read(12,'(1p,6e20.12)') ome, ber, radi
+   ! Legacy records have three fields; formatted input pads xcm with blanks (zero).
+   read(12,'(1p,6e20.12)') ome, ber, radi, xcm
   else if (coc2cac_readformat == "23.15") then
       do ip = 0, nptmp
          do it = 0, nttmp
@@ -27,7 +28,7 @@ implicit none
             end do
          end do
       end do
-      read(12,'(1p,6e23.15)') ome, ber, radi
+      read(12,'(1p,6e23.15)') ome, ber, radi, xcm
   end if
   close(12)
 !

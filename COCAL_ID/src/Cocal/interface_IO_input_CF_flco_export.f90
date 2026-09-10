@@ -2,9 +2,9 @@ module COCAL_ID_interface_IO_input_CF_flco_export
 implicit none
   interface 
   
-subroutine COCAL_ID_IO_input_CF_flco_export(filenm,coc2cac_readformat, emd,ome,ber,radi)
+subroutine COCAL_ID_IO_input_CF_flco_export(filenm,coc2cac_readformat, emd,ome,ber,radi,xcm)
       real(8), pointer :: emd(:,:,:)
-      real(8) ::  ome,ber,radi
+      real(8) ::  ome,ber,radi,xcm
       character(len=*) :: filenm,coc2cac_readformat
   
 end subroutine COCAL_ID_IO_input_CF_flco_export

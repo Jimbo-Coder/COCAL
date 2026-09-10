@@ -28,17 +28,20 @@ implicit none
   integer :: ipgex_hphi(-2:nnpg+2)
 !
 contains
-subroutine grid_extended
+subroutine grid_extended(nr_finite)
 
 implicit none
-  integer  :: irg, itg, ipg
-  rgex(0:nrg) = rg(0:nrg)
+  integer, intent(in), optional :: nr_finite
+  integer :: irg, itg, ipg, nr
+  nr = nrg
+  if (present(nr_finite)) nr = nr_finite
+  rgex(0:nr) = rg(0:nr)
   thgex(0:ntg) = thg(0:ntg)
   phigex(0:npg) = phig(0:npg)
   rgex(-1) = rg(0) - (rg(1) - rg(0))
   rgex(-2) = rg(0) - (rg(2) - rg(0))
-  rgex(nrg+1) = rg(nrg) + (rg(nrg) - rg(nrg-1))
-  rgex(nrg+2) = rg(nrg) + 2.0d0*(rg(nrg) - rg(nrg-1))
+  rgex(nr+1) = rg(nr) + (rg(nr) - rg(nr-1))
+  rgex(nr+2) = rg(nr) + 2.0d0*(rg(nr) - rg(nr-1))
   thgex(-1) = - thg(1)
   thgex(-2) = - thg(2)
   thgex(ntg+1) =  2.0d0*thg(ntg) - thg(ntg-1)
@@ -48,8 +51,8 @@ implicit none
   phigex(npg+1) =  phig(npg) + phig(1)
   phigex(npg+2) =  phig(npg) + phig(2)
 !
-  do irg = -2, nrg
-    if (irg.ge.0.and.irg.le.nrg) irgex_r(irg) = irg
+  do irg = -2, nr
+    if (irg.ge.0.and.irg.le.nr) irgex_r(irg) = irg
     if (irg.le.-1)    irgex_r(irg) = iabs(irg)
   end do
   do itg = -2, ntg + 2 
@@ -63,13 +66,13 @@ implicit none
     if (ipg.ge.npg+1) ipgex_phi(ipg) = ipg - npg
   end do
 !
-  do irg = -2, nrg
+  do irg = -2, nr
     do itg = 0, ntg
       if (irg.ge. 0) itgex_r(itg,irg) = itg
       if (irg.le.-1) itgex_r(itg,irg) = ntg - itg
     end do
   end do
-  do irg = -2, nrg
+  do irg = -2, nr
     do ipg = 0, npg
       if (irg.ge. 0) ipgex_r(ipg,irg) = ipg
       if (irg.le.-1) ipgex_r(ipg,irg) = mod(ipg + npg/2,npg)
@@ -84,14 +87,14 @@ implicit none
 !
 ! midpoints
 !
-  hrgex(1:nrg) = hrg(1:nrg)
+  hrgex(1:nr) = hrg(1:nr)
   hthgex(1:ntg) = hthg(1:ntg)
   hphigex(1:npg) = hphig(1:npg)
   hrgex(0) =  rg(0) - hrg(1)
   hrgex(-1) = rg(0) - hrg(2)
   hrgex(-2) = rg(0) - hrg(3)
-  hrgex(nrg+1) = 0.5d0*(rg(nrg+1) + rg(nrg))
-  hrgex(nrg+2) = 0.5d0*(rg(nrg+2) + rg(nrg+1))
+  hrgex(nr+1) = 0.5d0*(rgex(nr+1) + rgex(nr))
+  hrgex(nr+2) = 0.5d0*(rgex(nr+2) + rgex(nr+1))
   hthgex(0) = - hthg(1)
   hthgex(-1) = - hthg(2)
   hthgex(-2) = - hthg(3)
@@ -103,17 +106,17 @@ implicit none
   hphigex(npg+1) =  hphig(npg) + phig(1)
   hphigex(npg+2) =  hphig(npg) + phig(2)
 !
-  do irg = -2, nrg
+  do irg = -2, nr
     if (irg.ge.1) irgex_hr(irg) = irg
     if (irg.le.0) irgex_hr(irg) = iabs(irg) + 1
   end do
-  do irg = -2, nrg
+  do irg = -2, nr
     do itg = 1, ntg
       if (irg.ge.1) itgex_hr(itg,irg) = itg
       if (irg.le.0) itgex_hr(itg,irg) = ntg - itg + 1
     end do
   end do
-  do irg = -2, nrg
+  do irg = -2, nr
     do ipg = 1, npg
       if (irg.ge.1) ipgex_hr(ipg,irg) = ipg
       if (irg.le.0) ipgex_hr(ipg,irg) = mod(ipg + npg/2,npg)

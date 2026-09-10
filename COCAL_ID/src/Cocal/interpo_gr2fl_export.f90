@@ -17,7 +17,9 @@ implicit none
     do itf = 0, ntf
       do irf = 0, nrf
         rrff = rs(itf,ipf)*rg(irf)
-        do irg = 0, nrg-1
+        if (rrff < rg(0) .or. rrff > rg(nrg)) error stop 'COCAL_ID: fluid surface exceeds gravitational grid'
+        ir0 = nrg-3
+        do irg = 0, nrg
           if (rrff.le.rg(irg)) then 
             ir0 = min0(max0(0,irg-2),nrg-3)
             exit

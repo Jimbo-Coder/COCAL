@@ -1,13 +1,15 @@
 ! Cubic (4th order) Lagrange interpolation of the surface.
-subroutine COCAL_ID_interpo_lag4th_2Dsurf(val,fnc,tv,pv)
+subroutine COCAL_ID_interpo_lag4th_2Dsurf(val,fnc,tv,pv,ntg,npg, &
+                                      thgex,phigex,itgex_th,ipgex_phi,ipgex_th)
 
 use COCAL_ID_phys_constant, only : long
-use COCAL_ID_grid_parameter, only : ntg, npg
-use COCAL_ID_coordinate_grav_extended
 implicit none
+  integer, intent(in) :: ntg, npg
   real(long), intent(out) :: val
   real(long), intent(in)  :: tv, pv
   real(long), pointer :: fnc(:,:)
+  real(long), intent(in) :: thgex(-2:), phigex(-2:)
+  integer, intent(in) :: itgex_th(-2:), ipgex_phi(-2:), ipgex_th(0:,-2:)
   real(long) ::  th4(4), phi4(4), ft4(4), fp4(4)
   integer :: itg, ipg, itgex, ipgex
   integer :: it0, ip0, itg0 , ipg0, ii, jj, kk

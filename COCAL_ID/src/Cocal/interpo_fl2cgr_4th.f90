@@ -28,7 +28,8 @@ implicit none
   thc  = dmod(2.0d0*pi + datan2(varpic,zc),2.0d0*pi)
   phic = dmod(2.0d0*pi + datan2(    yc,xc),2.0d0*pi)
 !
-  call COCAL_ID_interpo_lag4th_2Dsurf(rsca,rs,thc,phic)
+  call COCAL_ID_interpo_lag4th_2Dsurf(rsca,rs,thc,phic,ntg,npg, &
+    thgex,phigex,itgex_th,ipgex_phi,ipgex_th)
   rc = rc_gr/rsca
 !  if (rc.gt.1.0d0) return
   if (rc.gt.rg(nrf)) return

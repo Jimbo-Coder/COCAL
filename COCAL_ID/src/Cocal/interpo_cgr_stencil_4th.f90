@@ -20,8 +20,9 @@ end subroutine COCAL_ID_gr2cgr_4th_setup
 subroutine COCAL_ID_fl2cgr_4th_setup(xc,yc,zc,rs,outside,irgex4,itgex4,ipgex4,wr,wth,wphi)
 
 use COCAL_ID_phys_constant, only : long, pi
-use COCAL_ID_grid_parameter, only : nrf
+use COCAL_ID_grid_parameter, only : nrf, ntg, npg
 use COCAL_ID_coordinate_grav_r, only : rg
+use COCAL_ID_coordinate_grav_extended, only : thgex, phigex, itgex_th, ipgex_phi, ipgex_th
 use COCAL_ID_interface_interpo_lag4th_2Dsurf
 implicit none
   real(long), intent(in)  :: xc, yc, zc
@@ -37,7 +38,8 @@ implicit none
   thc  = dmod(2.0d0*pi + datan2(varpic,zc),2.0d0*pi)
   phic = dmod(2.0d0*pi + datan2(    yc,xc),2.0d0*pi)
 !
-  call COCAL_ID_interpo_lag4th_2Dsurf(rsca,rs,thc,phic)
+  call COCAL_ID_interpo_lag4th_2Dsurf(rsca,rs,thc,phic,ntg,npg, &
+    thgex,phigex,itgex_th,ipgex_phi,ipgex_th)
   rc = rc_gr/rsca
   if (rc.gt.rg(nrf)) then
     outside = .true.
