@@ -1,6 +1,15 @@
 # COCAL_ID
 A cleaned up COCAL reader for the Einstein Toolkit, Carpet based.
 
+## BNS velocity correction
+
+For exports generated with the `xunit` prescription, set
+`COCAL_ID::COCAL_ID_bns_xunit = yes`. This multiplies `COCAL_ID_ecc_cor_velx`
+by the signed half-separation in COCAL coordinates, adding a constant x term
+to each star's corotating shift; negative values give inward corrections.
+The default is the existing radial prescription. Use the prescription and coefficient
+from the ID generation settings; neither is inferred from the directory name.
+
 ## Tabulated EOS utilities
 
 `utils/make_grhayl_teos.py` converts a raw CompOSE `eos.zip`/directory to the

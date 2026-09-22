@@ -1810,9 +1810,17 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
                  end select
 
 
-                 bxcor   = bvxdfca + ome_p1*(-ycoc)        + COCAL_ID_ecc_cor_velx * (xcoc-xcm_p1)
-                 bycor   = bvydfca + ome_p1*(xcoc-xcm_p1)   + COCAL_ID_ecc_cor_velx * ycoc
-                 bzcor   = bvzdfca                  + COCAL_ID_ecc_cor_velx * zcoc
+                 bxcor = bvxdfca + ome_p1*(-ycoc)
+                 bycor = bvydfca + ome_p1*(xcoc-xcm_p1)
+                 bzcor = bvzdfca
+                 if (COCAL_ID_bns_xunit == 1) then
+                   ! Patch 1 is at x=-dis_cm in the Cartesian frame.
+                   bxcor = bxcor - COCAL_ID_ecc_cor_velx * dis_cm
+                 else
+                   bxcor = bxcor + COCAL_ID_ecc_cor_velx * (xcoc-xcm_p1)
+                   bycor = bycor + COCAL_ID_ecc_cor_velx * ycoc
+                   bzcor = bzcor + COCAL_ID_ecc_cor_velx * zcoc
+                 end if
 
 
                  select case (trim(id_type))
@@ -2070,9 +2078,16 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
 
 
                  ! Patch 2's x/y axes are reversed relative to the Cartesian frame.
-                 bxcor   = bvxdfca + ome_p2*(-ycoc)        + COCAL_ID_ecc_cor_velx * (xcoc+xcm_p2)
-                 bycor   = bvydfca + ome_p2*(xcoc+xcm_p2)   + COCAL_ID_ecc_cor_velx * ycoc
-                 bzcor   = bvzdfca                  + COCAL_ID_ecc_cor_velx * zcoc
+                 bxcor = bvxdfca + ome_p2*(-ycoc)
+                 bycor = bvydfca + ome_p2*(xcoc+xcm_p2)
+                 bzcor = bvzdfca
+                 if (COCAL_ID_bns_xunit == 1) then
+                   bxcor = bxcor + COCAL_ID_ecc_cor_velx * dis_cm
+                 else
+                   bxcor = bxcor + COCAL_ID_ecc_cor_velx * (xcoc+xcm_p2)
+                   bycor = bycor + COCAL_ID_ecc_cor_velx * ycoc
+                   bzcor = bzcor + COCAL_ID_ecc_cor_velx * zcoc
+                 end if
 
          !
                 select case (trim(id_type))

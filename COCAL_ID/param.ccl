@@ -112,3 +112,7 @@ CCTK_REAL COCAL_ID_ecc_cor_velx "X velocity of the CoM"
 {
   *:* :: ""
 } 0.0
+
+CCTK_BOOLEAN COCAL_ID_bns_xunit "Use the BNS xunit velocity prescription instead of radial expansion"
+{
+} "False"
