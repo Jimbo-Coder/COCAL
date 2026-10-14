@@ -10,6 +10,14 @@ to each star's corotating shift; negative values give inward corrections.
 The default is the existing radial prescription. Use the prescription and coefficient
 from the ID generation settings; neither is inferred from the directory name.
 
+## BNS orbital offsets
+
+The fluid constants record in `bnsflu_3D_mpt{1,2}.las` contains
+`ome, ber, radi, xcm, zcm`. Missing `xcm` or `zcm` fields are read as zero.
+Both offsets are used automatically. Nonzero `zcm` tilts the orbital rotation
+used to reconstruct fluid velocities; zero `zcm` retains the existing `xcm`
+calculation. The radial and `xunit` eccentricity corrections are unchanged.
+
 ## Tabulated EOS utilities
 
 `utils/make_grhayl_teos.py` converts a raw CompOSE `eos.zip`/directory to the

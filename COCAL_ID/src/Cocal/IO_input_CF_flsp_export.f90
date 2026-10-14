@@ -1,10 +1,10 @@
-subroutine COCAL_ID_IO_input_CF_flsp_export(filenm,coc2cac_readformat,emd,vep,wxspf,wyspf,wzspf,ome,ber,radi,confpow,xcm)
+subroutine COCAL_ID_IO_input_CF_flsp_export(filenm,coc2cac_readformat,emd,vep,wxspf,wyspf,wzspf,ome,ber,radi,confpow,xcm,zcm)
 
 use COCAL_ID_phys_constant, only : long, nnrg, nntg, nnpg
 implicit none
   integer :: ir, it, ip, nrtmp, nttmp, nptmp
   real(8), pointer :: emd(:,:,:), vep(:,:,:), wxspf(:,:,:), wyspf(:,:,:), wzspf(:,:,:)
-  real(8) :: ome, ber, radi, confpow, omespx, omespy, omespz, xcm
+  real(8) :: ome, ber, radi, confpow, omespx, omespy, omespz, xcm, zcm
   character(len=*) :: filenm,coc2cac_readformat
 !
 ! --- Matter
@@ -19,8 +19,8 @@ implicit none
          end do
       end do
    end do
-   ! A missing xcm is blank-padded to zero without consuming the following spin record.
-   read(12,'(1p,6e20.12)') ome, ber, radi, xcm
+   ! Missing xcm/zcm fields become zero without consuming the following spin record.
+   read(12,'(1p,6e20.12)') ome, ber, radi, xcm, zcm
    read(12,'(1p,6e20.12)') confpow, omespx, omespy, omespz
   else if (coc2cac_readformat == "23.15") then
    do ip = 0, nptmp
@@ -31,7 +31,7 @@ implicit none
          end do
       end do
    end do
-   read(12,'(1p,6e23.15)') ome, ber, radi, xcm
+   read(12,'(1p,6e23.15)') ome, ber, radi, xcm, zcm
    read(12,'(1p,6e23.15)') confpow, omespx, omespy, omespz
   end if
   close(12)

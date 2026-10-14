@@ -162,8 +162,9 @@ module COCAL_ID_data_bns
     character(2), save :: id_type
     integer, save :: ierr = 0
     real(8), save :: rr3, dis_cm
-    real(8), save :: ome_p1, ber_p1, radi_p1, r_surf_p1, xcm_p1
-    real(8), save :: ome_p2, ber_p2, radi_p2, r_surf_p2, xcm_p2
+    real(8), save :: ome_p1, ber_p1, radi_p1, r_surf_p1, xcm_p1, zcm_p1
+    real(8), save :: ome_p2, ber_p2, radi_p2, r_surf_p2, xcm_p2, zcm_p2
+    real(8), save :: orbital_cos_p1, orbital_sin_p1, orbital_cos_p2, orbital_sin_p2
     real(8), save :: confpow_p1, confpow_p2
     integer, save :: nrg_p1, ntg_p1, npg_p1, nrf_p1, ntf_p1, npf_p1
     integer, save :: nrg_p2, ntg_p2, npg_p2, nrf_p2, ntf_p2, npf_p2
@@ -1085,11 +1086,11 @@ subroutine COCAL_ID_read_bns_data(CCTK_ARGUMENTS)
          call COCAL_ID_IO_input_CF_grav_export(trim(COCAL_ID_PathToIDf)//"/bnsgra_3D_mpt1.las",COCAL_ID_readformatf,psi_p1,alph_p1,bvxd_p1,bvyd_p1,bvzd_p1)
          select case (trim(id_type))
             case("CO")
-               call COCAL_ID_IO_input_CF_flco_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,ome_p1,ber_p1,radi_p1,xcm_p1)
+               call COCAL_ID_IO_input_CF_flco_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,ome_p1,ber_p1,radi_p1,xcm_p1,zcm_p1)
             case("IR")
-               call COCAL_ID_IO_input_CF_flir_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,vep_p1,ome_p1,ber_p1,radi_p1,xcm_p1) ! This line changes for IR/CO/SP
+               call COCAL_ID_IO_input_CF_flir_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,vep_p1,ome_p1,ber_p1,radi_p1,xcm_p1,zcm_p1) ! This line changes for IR/CO/SP
             case("SP")
-               call COCAL_ID_IO_input_CF_flsp_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,vep_p1,wxspf_p1,wyspf_p1,wzspf_p1,ome_p1,ber_p1,radi_p1,confpow_p1,xcm_p1)
+               call COCAL_ID_IO_input_CF_flsp_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt1.las",COCAL_ID_readformatf,emd_p1,vep_p1,wxspf_p1,wyspf_p1,wzspf_p1,ome_p1,ber_p1,radi_p1,confpow_p1,xcm_p1,zcm_p1)
          end select
 
 
@@ -1180,11 +1181,11 @@ subroutine COCAL_ID_read_bns_data(CCTK_ARGUMENTS)
 
          select case (trim(id_type))
          case("CO")
-            call COCAL_ID_IO_input_CF_flco_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,ome_p2,ber_p2,radi_p2,xcm_p2)
+            call COCAL_ID_IO_input_CF_flco_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,ome_p2,ber_p2,radi_p2,xcm_p2,zcm_p2)
          case("IR")
-            call COCAL_ID_IO_input_CF_flir_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,vep_p2,ome_p2,ber_p2,radi_p2,xcm_p2) ! This line changes for IR/CO/SP
+            call COCAL_ID_IO_input_CF_flir_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,vep_p2,ome_p2,ber_p2,radi_p2,xcm_p2,zcm_p2) ! This line changes for IR/CO/SP
          case("SP")
-            call COCAL_ID_IO_input_CF_flsp_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,vep_p2,wxspf_p2,wyspf_p2,wzspf_p2,ome_p2,ber_p2,radi_p2,confpow_p2,xcm_p2)
+            call COCAL_ID_IO_input_CF_flsp_export(trim(COCAL_ID_PathToIDf)//"/bnsflu_3D_mpt2.las",COCAL_ID_readformatf,emd_p2,vep_p2,wxspf_p2,wyspf_p2,wzspf_p2,ome_p2,ber_p2,radi_p2,confpow_p2,xcm_p2,zcm_p2)
          end select
 
          call COCAL_ID_IO_input_CF_surf_export(trim(COCAL_ID_PathToIDf)//"/bnssur_3D_mpt2.las",COCAL_ID_readformatf,rs_p2)
@@ -1262,19 +1263,21 @@ subroutine COCAL_ID_read_bns_data(CCTK_ARGUMENTS)
 
        end if
      end do
-     if (.not. all(ieee_is_finite([radi_p1,radi_p2,ome_p1,ome_p2,ber_p1,ber_p2,xcm_p1,xcm_p2]))) &
+     if (.not. all(ieee_is_finite([radi_p1,radi_p2,ome_p1,ome_p2,ber_p1,ber_p2,xcm_p1,xcm_p2,zcm_p1,zcm_p2]))) &
        call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: non-finite BNS fluid constants.")
      if (min(radi_p1,radi_p2) <= 0.0d0) &
        call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: BNS radi must be positive.")
      ! radi is a shared length unit, not the individual stellar radius. Allow iteration/print noise.
      if (abs(radi_p1-radi_p2) > radi_tol*max(radi_p1,radi_p2)) &
        call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: unequal radi normalizations are not supported by this BNS coordinate map.")
+     call set_orbital_direction(xcm_p1,zcm_p1,orbital_cos_p1,orbital_sin_p1)
+     call set_orbital_direction(xcm_p2,zcm_p2,orbital_cos_p2,orbital_sin_p2)
      if (COCAL_ID_verbose == 1) then
         write(outstr,'(a,2e20.12)') 'BNS central enthalpies: ', emd_p1(0,0,0), emd_p2(0,0,0)
         call CCTK_INFO(trim(outstr))
-        write(outstr,'(a,4e20.12)') 'BNS p1 ome, ber, radi, xcm: ', ome_p1, ber_p1, radi_p1, xcm_p1
+        write(outstr,'(a,5e20.12)') 'BNS p1 ome, ber, radi, xcm, zcm: ', ome_p1, ber_p1, radi_p1, xcm_p1, zcm_p1
         call CCTK_INFO(trim(outstr))
-        write(outstr,'(a,4e20.12)') 'BNS p2 ome, ber, radi, xcm: ', ome_p2, ber_p2, radi_p2, xcm_p2
+        write(outstr,'(a,5e20.12)') 'BNS p2 ome, ber, radi, xcm, zcm: ', ome_p2, ber_p2, radi_p2, xcm_p2, zcm_p2
         call CCTK_INFO(trim(outstr))
         write(outstr,'(e20.12)') dis_cm
         call CCTK_INFO(trim(outstr))
@@ -1290,6 +1293,24 @@ subroutine COCAL_ID_read_bns_data(CCTK_ARGUMENTS)
      !$OMP END CRITICAL(COCAL_ID_bns_read)
 
   contains
+    subroutine set_orbital_direction(xcm,zcm,orbital_cos,orbital_sin)
+      implicit none
+      real(8), intent(in) :: xcm, zcm
+      real(8), intent(out) :: orbital_cos, orbital_sin
+      real(8) :: dis_bin, orbital_norm
+
+      orbital_cos = 1.0d0
+      orbital_sin = 0.0d0
+      if (zcm == 0.0d0) return
+
+      dis_bin = dis_cm + xcm
+      orbital_norm = norm2([dis_bin,zcm])
+      if (.not. ieee_is_finite(orbital_norm) .or. orbital_norm <= 0.0d0) &
+        call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: invalid BNS orbital-axis normalization.")
+      orbital_cos = dis_bin/orbital_norm
+      orbital_sin = zcm/orbital_norm
+    end subroutine set_orbital_direction
+
     integer function read_id_type(filename,id_type)
 
       implicit none
@@ -1810,9 +1831,17 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
                  end select
 
 
-                 bxcor = bvxdfca + ome_p1*(-ycoc)
-                 bycor = bvydfca + ome_p1*(xcoc-xcm_p1)
-                 bzcor = bvzdfca
+                 if (zcm_p1 == 0.0d0) then
+                   bxcor = bvxdfca + ome_p1*(-ycoc)
+                   bycor = bvydfca + ome_p1*(xcoc-xcm_p1)
+                   bzcor = bvzdfca
+                 else
+                   ! Rotation vector: ome*(-orbital_sin, 0, orbital_cos).
+                   bxcor = bvxdfca - ome_p1*orbital_cos_p1*ycoc
+                   bycor = bvydfca + ome_p1*(orbital_cos_p1*(xcoc-xcm_p1) &
+                     + orbital_sin_p1*(zcoc-zcm_p1))
+                   bzcor = bvzdfca - ome_p1*orbital_sin_p1*ycoc
+                 end if
                  if (COCAL_ID_bns_xunit == 1) then
                    ! Patch 1 is at x=-dis_cm in the Cartesian frame.
                    bxcor = bxcor - COCAL_ID_ecc_cor_velx * dis_cm
@@ -2078,9 +2107,16 @@ SUBROUTINE COCAL_ID_bns(CCTK_ARGUMENTS)
 
 
                  ! Patch 2's x/y axes are reversed relative to the Cartesian frame.
-                 bxcor = bvxdfca + ome_p2*(-ycoc)
-                 bycor = bvydfca + ome_p2*(xcoc+xcm_p2)
-                 bzcor = bvzdfca
+                 if (zcm_p2 == 0.0d0) then
+                   bxcor = bvxdfca + ome_p2*(-ycoc)
+                   bycor = bvydfca + ome_p2*(xcoc+xcm_p2)
+                   bzcor = bvzdfca
+                 else
+                   bxcor = bvxdfca - ome_p2*orbital_cos_p2*ycoc
+                   bycor = bvydfca + ome_p2*(orbital_cos_p2*(xcoc+xcm_p2) &
+                     + orbital_sin_p2*(zcoc-zcm_p2))
+                   bzcor = bvzdfca - ome_p2*orbital_sin_p2*ycoc
+                 end if
                  if (COCAL_ID_bns_xunit == 1) then
                    bxcor = bxcor + COCAL_ID_ecc_cor_velx * dis_cm
                  else
