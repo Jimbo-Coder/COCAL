@@ -1,0 +1,93 @@
+# Minimal Einstein Toolkit for the COCAL_ID fixtures (test/), from the
+# ET_2026_05 release. run.sh links this repository in as arrangements/COCAL.
+!CRL_VERSION = 1.0
+!DEFINE ROOT = Cactus
+!DEFINE ARR  = $ROOT/arrangements
+!DEFINE ET_RELEASE = ET_2026_05
+
+!TARGET   = $ROOT
+!TYPE     = git
+!URL      = https://bitbucket.org/cactuscode/cactus.git
+!REPO_BRANCH = $ET_RELEASE
+!NAME     = flesh
+!CHECKOUT = .clang-format CONTRIBUTORS COPYRIGHT doc lib Makefile README.md src
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://bitbucket.org/cactuscode/cactusbase.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+CactusBase/Boundary
+CactusBase/CartGrid3D
+CactusBase/CoordBase
+CactusBase/Fortran
+CactusBase/InitBase
+CactusBase/IOUtil
+CactusBase/SymBase
+CactusBase/Time
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://bitbucket.org/cactuscode/cactusnumerical.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+CactusNumerical/LocalInterp
+CactusNumerical/LocalReduce
+CactusNumerical/Slab
+CactusNumerical/SpaceMask
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://bitbucket.org/cactuscode/cactusutils.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+CactusUtils/Vectors
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://github.com/einsteintoolkit/Carpet.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+Carpet/Carpet
+Carpet/CarpetInterp
+Carpet/CarpetIOASCII
+Carpet/CarpetIOBasic
+Carpet/CarpetIOScalar
+Carpet/CarpetLib
+Carpet/CarpetReduce
+Carpet/CarpetRegrid2
+Carpet/CarpetSlab
+Carpet/CycleClock
+Carpet/LoopControl
+Carpet/Timers
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://bitbucket.org/einsteintoolkit/einsteinbase.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+EinsteinBase/ADMBase
+EinsteinBase/CoordGauge
+EinsteinBase/HydroBase
+EinsteinBase/StaticConformal
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://bitbucket.org/cactuscode/numerical.git
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH= $2
+!CHECKOUT =
+Numerical/AEILocalInterp
+
+!TARGET   = $ARR
+!TYPE     = git
+!URL      = https://github.com/EinsteinToolkit/$1-$2
+!REPO_BRANCH = $ET_RELEASE
+!REPO_PATH = ../$1-$2
+!CHECKOUT =
+ExternalLibraries/MPI

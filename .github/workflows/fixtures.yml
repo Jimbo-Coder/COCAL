@@ -1,0 +1,55 @@
+# Build a minimal Einstein Toolkit and run the COCAL_ID fixture tests, only
+# when the reader, its tests, the generator or this CI change.
+name: COCAL_ID fixtures
+
+on:
+  push:
+    paths:
+      - "COCAL_ID/src/**"
+      - "COCAL_ID/*.ccl"
+      - "COCAL_ID/test/**"
+      - "tools/*.py"
+      - ".github/ci/**"
+      - ".github/workflows/fixtures.yml"
+  pull_request:
+    paths:
+      - "COCAL_ID/src/**"
+      - "COCAL_ID/*.ccl"
+      - "COCAL_ID/test/**"
+      - "tools/*.py"
+      - ".github/ci/**"
+      - ".github/workflows/fixtures.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compilers and OpenMPI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gfortran libopenmpi-dev openmpi-bin
+
+      # The toolkit checkout and build; only the reader is recompiled.
+      - name: Restore the Cactus build
+        uses: actions/cache@v4
+        with:
+          path: cactus-ci
+          key: cactus-${{ hashFiles('.github/ci/cocal.th', '.github/ci/ubuntu.cfg') }}-${{ github.sha }}
+          restore-keys: cactus-${{ hashFiles('.github/ci/cocal.th', '.github/ci/ubuntu.cfg') }}-
+
+      - name: Check the parfile generator
+        run: python3 -m py_compile tools/generate_parfile.py && python3 tools/generate_parfile.py --help > /dev/null
+
+      - name: Build and run the fixtures
+        run: .github/ci/run.sh cactus-ci
