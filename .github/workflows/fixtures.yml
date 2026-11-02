@@ -49,7 +49,7 @@ jobs:
           restore-keys: cactus-${{ hashFiles('.github/ci/cocal.th', '.github/ci/ubuntu.cfg') }}-
 
       - name: Check the parfile generator
-        run: python3 -m py_compile tools/generate_parfile.py && python3 tools/generate_parfile.py --help > /dev/null
+        run: python3 -m py_compile tools/*.py && python3 tools/generate_parfile.py --help > /dev/null
 
       - name: Build and run the fixtures
         run: .github/ci/run.sh cactus-ci

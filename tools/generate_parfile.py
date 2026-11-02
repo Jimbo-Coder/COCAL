@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a Carpet (RNS/BNS/BBH/BBHT) or CarpetX (RNS/BNS) parfile from a COCAL ID directory."""
+"""Generate a Carpet parfile from a COCAL RNS, BNS, BBH or BBHT ID directory."""
 
 import argparse
 from array import array as doubles
@@ -51,15 +51,6 @@ bbh_thorns = [
 bbht_thorns = ["Baikal" if t == "BaikalVacuum" else t for t in bbh_thorns]
 bbht_thorns += ["GRHayLHD", "VolumeIntegrals_GRMHD"]
 
-# CarpetX + AsterX + Z4c, for RNS and BNS: set "driver": "carpetx" in a config.
-# The thorns come from COCALX (Jimbo-Coder/COCALX) and its thornlist.
-carpetx_thorns = [
-    "ADMBaseX", "AsterAnalysis", "AsterMasks", "AsterSeeds", "AsterX", "BoxInBox",
-    "CarpetX", "CarpetXRegrid", "Con2PrimFactory", "CoordinatesX", "COCAL_IDX",
-    "EOSX", "HydroBaseX", "IOUtil", "NewRadX", "ODESolvers", "QuasiLocalMeasures",
-    "ReconX", "SphericalSurface", "TGRtensor", "TimerReport", "TmunuBaseX",
-    "VolumeIntegrals_GRMHDX", "VolumeIntegrals_vacuumX", "Z4c",
-]
 
 
 # RUN CONFIGURATIONS: edit here, then run `python tools/generate_parfile.py 0`.
@@ -617,7 +608,6 @@ def settings(id_dir, overrides=None):
     """Apply one run's overrides; grid and run defaults come from its profile."""
     values = {
         "name": None,
-        "driver": "carpet",          # or "carpetx" (RNS/BNS, single polytrope)
         "profile": "semiprod",
         "compact": False,
         "xunit": False,
@@ -641,8 +631,6 @@ def settings(id_dir, overrides=None):
             raise ValueError("Unknown configuration settings: " + ", ".join(sorted(unknown)))
         values.update(overrides)
 
-    if values["driver"] not in ("carpet", "carpetx"):
-        raise ValueError('driver must be "carpet" or "carpetx"')
     if values["profile"] not in ("local", "semiprod"):
         raise ValueError('profile must be "local" or "semiprod"')
     if values['spacetime_thorn'] is not None and (not isinstance(values['spacetime_thorn'], str) or values['spacetime_thorn'] not in SPACETIME_THORNS):
@@ -1601,330 +1589,8 @@ def render_parfile(blocks, active, macros, title, profile):
     return "\n\n".join(sections) + "\n"
 
 
-# CarpetX recipe (config "driver": "carpetx"): CarpetX + AsterX + Z4c for RNS
-# and BNS IDs with a single polytrope, from COCALX's examples (COCAL_IDX/par).
-# It uses the Carpet recipe's grid (resolve_grid) and the same formatting.
-
-def cold_eos(data, rho):
-    """Cold pressure and specific internal energy of the COCAL polytrope at rho."""
-    gammas, bounds = data["EOS_gamma"], data["EOS_boundaries"]
-    k, eps_offset, piece = data["EOS_k0"], 0.0, 0
-    for i, boundary in enumerate(bounds):
-        if rho < boundary:
-            break
-        # Continuity of P and eps at the boundary.
-        k_next = k * boundary**(gammas[i] - gammas[i + 1])
-        eps_offset += k * boundary**(gammas[i] - 1) / (gammas[i] - 1) - k_next * boundary**(gammas[i + 1] - 1) / (gammas[i + 1] - 1)
-        k, piece = k_next, i + 1
-    gamma = gammas[piece]
-    return k * rho**gamma, eps_offset + k * rho**(gamma - 1) / (gamma - 1)
-
-
-def carpetx_run(cfg, grid):
-    """Cadence and runtime controls; output every coarse step, which CarpetX's
-    subcycled levels share."""
-    local = cfg["profile"] == "local"
-    every = 2**(grid["levels"] - 1)
-    run = {"iterations": 8 if local else 100000000, "final_time": 1000, "dtfac": 0.25 if local else 0.3,
-           "out_every": every, "out3d_every": 64 * every, "walltime_hours": 1 if local else 12,
-           "checkpoint_hours": -1 if local else 0.9}
-    if cfg["run"].keys() - run.keys():
-        raise ValueError("The CarpetX recipe's run accepts " + ", ".join(run))
-    run.update(cfg["run"])
-    for name in ("out_every", "out3d_every"):
-        if type(run[name]) is not int or run[name] < 1:
-            raise ValueError(f"{name} must be a positive integer")
-    return run
-
-
-class CarpetXSetup:
-    """The resolved inputs and the layout the CarpetX blocks share."""
-
-    def __init__(self, cfg, data, grid, run, active):
-        self.cfg, self.data, self.grid, self.run, self.active = cfg, data, grid, run, active
-        self.bns = data["kind"] == "bns"
-        self.local = cfg["profile"] == "local"
-        self.centers, self.radii = data["centers"], data["max_coordinate_star_radii"]
-        self.eta = cfg["gauge"].get("eta", 1 / data["source_adm_mass"])
-        # CarpetX's base grid: whole blocks of 8 cells of the coarse spacing.
-        dx = grid["coarse_dx"]
-        self.ncells = [8 * math.ceil(2 * extent / dx / 8) for extent in grid["domain"]]
-        self.extent = [n * dx / 2 for n in self.ncells]
-        # BNS semiproduction adds shared outer levels to the two moving stacks.
-        self.offset = 1 if self.bns and not self.local else 0
-        self.atmosphere = matter_limits(data)["atmosphere"]
-        # Prescribed spheres: one about each star, then fixed global ones.
-        stellar_extent = max(abs(x) + r for x, r in zip(self.centers, self.radii))
-        outer = min(self.extent)
-        globals_ = [f * outer for f in (0.6, 0.7, 0.8, 0.9) if stellar_extent + 4 * dx < f * outer < outer - 4 * dx]
-        names = ["LHS BNS", "RHS BNS"] if self.bns else ["star"]
-        self.spheres = ([dict(name=n, x=x, radius=1.05 * r) for n, x, r in zip(names, self.centers, self.radii)]
-                        + [dict(name=f"r = {r / outer:g} xmax", x=0, radius=r) for r in globals_])
-        self.global_radii = globals_
-
-
-def cx_cactus(s):
-    return {"cctk_show_schedule": "no", "presync_mode": '"mixed-error"', "terminate": '"either"',
-            "cctk_itlast": s.run["iterations"], "cctk_final_time": real(s.run["final_time"])}
-
-
-def cx_carpetx(s):
-    run, every = s.run, s.run["out_every"]
-    grid = {"verbose": "no", "poison_undefined_values": "no", "ghost_size": GHOST_SIZE,
-            "max_num_levels": s.grid["levels"], "regrid_every": every, "regrid_error_threshold": 0.9,
-            "refine_grid_layout": "no", "use_subcycling": "yes", "restrict_during_sync": "no",
-            "prolongation_type": '"poly-cons3lfb"', "prolongation_order": PROLONGATION_ORDER,
-            "interpolation_order": 3, "dtfac": real(run["dtfac"]), "out_performance_every": every}
-    for axis, extent, n in zip("xyz", s.extent, s.ncells):
-        grid.update({f"{axis}min": real(-extent), f"{axis}max": real(extent), f"ncells_{axis}": n,
-                     f"blocking_factor_{axis}": 8, f"max_grid_size_{axis}": 64, f"max_tile_size_{axis}": 1024000,
-                     f"boundary_{axis}": '"neumann"', f"boundary_upper_{axis}": '"neumann"'})
-    fields = ("HydroBaseX::rho", "HydroBaseX::vel", "HydroBaseX::press", "ADMBaseX::lapse", "ADMBaseX::shift",
-              "ADMBaseX::metric", "ADMBaseX::curv", "Z4c::HC", "Z4c::MtC")
-    grid.update({"out_norm_vars": '"all"', "out_norm_omit_unstable": "yes", "out_norm_every": every,
-                 "out_metadata": "yes", "out_openpmd_every": run["out3d_every"], "out_openpmd_vars": variables(*fields),
-                 "checkpoint_method": '"openpmd"', "recover_method": '"openpmd"'})
-    return grid
-
-
-def cx_box_in_box(s):
-    """A fixed box per star (BNS: tracking its centre of mass) and, for BNS
-    semiproduction, the shared outer levels; level 0 is the whole domain."""
-    grid = s.grid
-    regions = []
-    if s.offset:
-        regions.append((grid["common_levels"], 0, grid["common_boxes"]))
-    regions += [(grid["levels"], x, boxes) for x, boxes in zip(s.centers, grid["star_boxes"])]
-    boxes = {"num_regions": len(regions)}
-    for r, (levels, x, radii) in enumerate(regions, 1):
-        boxes.update({f"shape_{r}": '"cube"', f"num_levels_{r}": levels, f"position_x_{r}": real(x),
-                      f"radius_{r}": "[-1, " + ", ".join(real(v) for v in radii[:levels - 1]) + "]"})
-    return boxes
-
-
-def cx_ode_solvers(s):
-    return {"verbose": "no", "method": '"RK4"'}
-
-
-def cx_cocal_idx(s):
-    data = s.data
-    reader = {"COCAL_IDX_PathToID": quoted(data["id"]), "COCAL_IDX_verbose": "no"}
-    if s.bns:
-        cfg = s.cfg
-        if cfg["compact"]:
-            reader["COCAL_IDX_bns_compact"] = "yes"
-        if cfg["xunit"]:
-            reader["COCAL_IDX_bns_xunit"] = "yes"
-        if isinstance(cfg["ecc_cor_velx"], (list, tuple)):
-            reader.update({f"COCAL_IDX_ecc_cor_velx_star[{i}]": real(v) for i, v in enumerate(cfg["ecc_cor_velx"])})
-        else:
-            reader["COCAL_IDX_ecc_cor_velx"] = real(cfg["ecc_cor_velx"])
-        velz = velocity_pair(cfg["ecc_cor_velz"], "ecc_cor_velz")
-        if any(velz):
-            reader.update({f"COCAL_IDX_ecc_cor_velz_star[{i}]": real(v) for i, v in enumerate(velz)})
-        reader.update({f"COCAL_IDX_cen_x{i}": real(x) for i, x in enumerate(s.centers, 1)})
-    else:
-        reader["COCAL_IDX_rnstype"] = quoted(data["rnstype"])
-    return Block(reader, "COCAL initial data")
-
-
-def cx_adm_base_x(s):
-    return {"initial_data": '"CocalBNS"' if s.bns else '"CocalRNS"', "initial_lapse": '"Cocal"',
-            "initial_shift": '"zero"' if s.bns else '"Cocal"', "initial_dtlapse": '"zero"', "initial_dtshift": '"zero"'}
-
-
-def cx_hydro_base_x(s):
-    return {"initial_hydro": '"Cocal"'}
-
-
-def cx_z4c(s):
-    return {"kappa1": 0.02, "kappa2": 0.0, "f_mu_L": 2.0, "f_mu_S": 1.0, "eta": real(s.eta),
-            "calc_ADM_vars": "yes", "calc_ADMRHS_vars": "no", "calc_constraints": "yes", "chi_floor": 1.0e-6,
-            "alphaG_floor": 1.0e-8, "epsdiss": 0.32, "boundary_conditions": '"NewRadX"'}
-
-
-def cx_aster_analysis(s):
-    return {"compute_MHD": '"yes"', "compute_MHD_spherical": '"no"'}
-
-
-def cx_aster_seeds(s):
-    """Unmagnetized: AsterSeeds only fills Ye, temperature and entropy, after
-    the initial data, and seeds no field."""
-    return Block({"set_Ye_postinitial": '"yes"', "set_temperature_postinitial": '"yes"',
-                  "set_entropy_postinitial": '"yes"', "test_type": '"3DTest"',
-                  "test_case": '"magBNS"' if s.bns else '"magTOV"', "Afield_config": '"internal dipole"',
-                  "Ab": 0.0, "press_cut": 0.04, "press_max": real(cold_eos(s.data, s.data["peak_density"])[0]),
-                  "Avec_kappa": 2.0, "dipole_x": array(s.centers), "initial_beta": '"no"',
-                  "set_coorbiting_vel": '"no"', "seed_every": 0}, "Unmagnetized initial state")
-
-
-def cx_aster_x(s):
-    return {"debug_mode": '"no"', "flux_type": '"HLLE"', "use_uct": '"yes"',
-            "vector_potential_gauge": '"generalized Lorenz"',
-            "lorenz_damp_fac": real(1.5 / (s.run["dtfac"] * s.grid["coarse_dx"])), "local_spatial_order": 4,
-            "update_tmunu": '"yes"', "tmunu_interp_order": 4, "local_estimate_error": '"no"',
-            "recon_type": '"z_vec"', "use_entropy_fix": '"no"'}
-
-
-def cx_recon_x(s):
-    return {"reconstruction_method": '"ppm"', "ppm_zone_flattening": '"yes"', "ppm_shock_detection": '"no"'}
-
-
-def cx_eosx(s):
-    """COCAL's cold polytrope for the initial data and an ideal gas of the same
-    Gamma for the evolution, as in COCALX's examples: AsterX needs a
-    temperature, which EOSX's Hybrid EOS does not provide."""
-    gamma, k = s.data["EOS_gamma"][0], s.data["EOS_k0"]
-    return Block({"initial_data_eos": '"Polytropic"', "evolution_eos": '"IdealGas"', "poly_gamma": real(gamma),
-                  "poly_k": real(k), "gl_gamma": real(gamma), "rho_max": 1e8, "eps_max": 1e8, "eps_min": 1e-12},
-                 "EOS from the native COCAL input")
-
-
-def cx_con2prim_factory(s):
-    rho = s.atmosphere
-    return {"unit_test": '"no"', "c2p_prime": '"Noble"', "c2p_second": '"Palenzuela"', "c2p_tol": 1e-8,
-            "max_iter": 1000, "B_lim": 1e8, "vw_lim": 1e8, "Ye_lenient": '"yes"', "use_temperature": '"no"',
-            "thermal_eos_atmo": '"no"', "rho_abs_min": real(rho),
-            # A cold atmosphere: tau = rho * eps.
-            "tauFluid_atmo": real(rho * cold_eos(s.data, rho)[1]), "atmo_tol": 1e-3, "Ye_atmo": 0.5}
-
-
-def cx_io_util(s):
-    run = s.run
-    return {"out_dir": "$parfile", "out_every": run["out_every"], "checkpoint_dir": '"checkpoints"',
-            "recover_dir": '"checkpoints"', "checkpoint_ID": "no", "checkpoint_every": -1,
-            "checkpoint_every_walltime_hours": real(run["checkpoint_hours"]),
-            "checkpoint_on_terminate": yes_no(not s.local), "recover": '"no"' if s.local else '"autoprobe"'}
-
-
-def cx_timer_report(s):
-    return {"out_every": s.run["out_every"], "out_filename": '"TimerReport"', "output_all_timers_together": "yes",
-            "output_all_timers_readable": "yes", "n_top_timers": 100}
-
-
-def cx_volume_integrals_grmhdx(s):
-    out = {"outVolIntegral_dir": '"volume_integration"', "VolIntegral_out_every": s.run["out_every"],
-           "verbose": 0, "enable_file_output": 1}
-    if not s.bns:
-        return Block({**out, "set_origin_with_VIX": "no", "NumIntegrals": 1,
-                      "Integration_quantity_keyword[1]": '"restmass"'}, labels={1: "Whole-domain rest mass"})
-    # Whole-domain CoM as the diagnostic origin; each star's CoM drives its box and sphere.
-    matter = {**out, "set_origin_with_VIX": "yes", "NumIntegrals": 4,
-              "Integration_quantity_keyword[1]": '"centerofmass"', "Integration_quantity_keyword[4]": '"restmass"'}
-    labels = {1: "Whole-domain CoM", 4: "Whole-domain rest mass"}
-    for star, (x, radius) in enumerate(zip(s.centers, s.grid["tracking_radii"])):
-        slot, centre = star + 2, star + s.offset
-        labels[slot] = ("Lhs" if star == 0 else "Rhs") + " CoM"
-        matter.update({f"Integration_quantity_keyword[{slot}]": '"centerofmass"',
-                       f"volintegral_sphere__center_x_initial[{slot}]": real(x),
-                       f"volintegral_inside_sphere__radius[{slot}]": real(radius),
-                       f"volintegral_sphere__tracks__amr_centre[{slot}]": centre,
-                       f"amr_centre__tracks__volintegral_inside_sphere[{slot}]": centre,
-                       f"sphericalsurface__tracks__volintegral_inside_sphere[{slot}]": star})
-    return Block(matter, labels=labels)
-
-
-def cx_volume_integrals_vacuumx(s):
-    vacuum = {"HamiltonianVarString": '"Z4c::HC"', "Momentum0VarString": '"Z4c::MtCx"',
-              "Momentum1VarString": '"Z4c::MtCy"', "Momentum2VarString": '"Z4c::MtCz"', "verbose": 0,
-              "enable_file_output": 1, "outVolIntegral_dir": '"volume_integration"',
-              "VolIntegral_out_every": s.run["out_every"]}
-    quantities = [("H_M_CnstraintsL2", -1), ("H_M2_CnstraintsL2", -1), ("ADM_Mass", -1), ("ADM_Momentum", -1),
-                  ("ADM_Angular_Momentum", -1)]
-    if s.global_radii:
-        # Finite-radius M and J on the innermost global sphere.
-        quantities += [("ADM_Mass", s.global_radii[0]), ("ADM_Angular_Momentum", s.global_radii[0])]
-    vacuum["NumIntegrals"] = len(quantities)
-    labels = {}
-    for slot, (quantity, radius) in enumerate(quantities, 1):
-        vacuum[f"Integration_quantity_keyword[{slot}]"] = quoted(quantity)
-        if radius > 0:
-            vacuum[f"volintegral_inside_sphere__radius[{slot}]"] = real(radius)
-        labels[slot] = f"{quantity}, " + ("whole domain" if radius < 0 else f"r={radius:g}")
-    return Block(vacuum, labels=labels)
-
-
-def cx_spherical_surface(s):
-    surfaces = {"nsurfaces": len(s.spheres), "maxntheta": 39, "maxnphi": 76}
-    for slot, sphere in enumerate(s.spheres):
-        surfaces.update({f"name[{slot}]": quoted(sphere["name"]), f"auto_res[{slot}]": "no",
-                         f"ntheta[{slot}]": 39, f"nphi[{slot}]": 76, f"set_spherical[{slot}]": "yes",
-                         f"radius[{slot}]": real(sphere["radius"]), f"origin_x[{slot}]": real(sphere["x"])})
-    return surfaces
-
-
-def cx_quasi_local_measures(s):
-    qlm = {"verbose": "no", "interpolator": '"CarpetX"', "interpolator_options": '"order=3"', "spatial_order": 4,
-           "calculate_every": s.run["out_every"], "num_surfaces": len(s.spheres)}
-    for slot, sphere in enumerate(s.spheres):
-        qlm.update({f"surface_index[{slot}]": slot, f"surface_name[{slot}]": quoted(sphere["name"])})
-    return qlm
-
-
-# Every CarpetX-recipe thorn with parameters, in output order.
-CARPETX_BLOCKS = {
-    "Cactus": cx_cactus, "CarpetX": cx_carpetx, "BoxInBox": cx_box_in_box, "ODESolvers": cx_ode_solvers,
-    "COCAL_IDX": cx_cocal_idx, "ADMBaseX": cx_adm_base_x, "HydroBaseX": cx_hydro_base_x, "Z4c": cx_z4c,
-    "AsterAnalysis": cx_aster_analysis, "AsterSeeds": cx_aster_seeds, "AsterX": cx_aster_x,
-    "ReconX": cx_recon_x, "EOSX": cx_eosx, "Con2PrimFactory": cx_con2prim_factory, "IOUtil": cx_io_util,
-    "TimerReport": cx_timer_report, "VolumeIntegrals_GRMHDX": cx_volume_integrals_grmhdx,
-    "VolumeIntegrals_vacuumX": cx_volume_integrals_vacuumx, "SphericalSurface": cx_spherical_surface,
-    "QuasiLocalMeasures": cx_quasi_local_measures,
-}
-
-
-def generate_carpetx(id_dir, overrides):
-    """A CarpetX + AsterX + Z4c parfile for an RNS or BNS ID with a single polytrope."""
-    directory = Path(id_dir).expanduser()
-    if (directory / "bbhgrids_3D_mpt1.las").is_file() or (directory / "bhtpar.dat").is_file():
-        raise ValueError("The CarpetX recipe covers RNS and BNS IDs")
-    overrides = dict(overrides or {})
-    overrides.pop("driver")
-    for key in ("spacetime_thorn", "hydro_thorn", "spacetime_options", "eos_table"):
-        if overrides.get(key):
-            raise ValueError(f"{key} applies to the Carpet recipe only")
-    cfg = settings(id_dir, {"active_thorns": carpetx_thorns, **overrides})
-    if cfg["gauge"].keys() - {"eta"}:
-        raise ValueError("The CarpetX recipe's gauge accepts eta only")
-    data = CocalMetadata(cfg["id_dir"]).read()
-    if data["EOS_type"] != "Hybrid":
-        raise ValueError("The CarpetX recipe covers polytropic EOS IDs; start tabulated runs from COCALX's examples")
-    if len(data["EOS_gamma"]) > 1:
-        # EOSX needs pwpoly_segm_bound[0] = 0, which its parameter range (0:* rejects.
-        raise ValueError("The CarpetX recipe covers single polytropes: EOSX's piecewise polytrope cannot "
-                         "be set until its pwpoly_segm_bound range includes 0")
-    if data.get("rnstype") == "MRNS_WL":
-        raise ValueError("MRNS needs AsterX's vector potential (COCALX AsterX-Msup); start from its examples")
-    if data["kind"] != "bns" and (cfg["compact"] or cfg["xunit"] or has_bns_velocity(cfg)):
-        raise ValueError("compact, xunit and eccentricity velocities apply to BNS only")
-    active = list(cfg["active_thorns"])
-    for thorn in ("CarpetX", "COCAL_IDX", "Z4c", "AsterX", "EOSX"):
-        if thorn not in active:
-            raise ValueError(f"The CarpetX recipe needs {thorn}; keep it in active_thorns")
-    grid = resolve_grid(data, cfg["grid"], cfg["profile"] == "local")
-    run = carpetx_run(cfg, grid)
-    s = CarpetXSetup(cfg, data, grid, run, active)
-    blocks = {}
-    for thorn, function in CARPETX_BLOCKS.items():
-        if thorn == "Cactus" or thorn in active:
-            block = function(s)
-            block = block if isinstance(block, Block) else Block(block)
-            blocks[thorn] = dict(parameters=block.parameters, title=block.title or thorn, labels=block.labels or {})
-    text = render_parfile(blocks, active, {}, f"CarpetX + AsterX + Z4c: COCAL {data['kind'].upper()}", cfg["profile"])
-    metadata = dict(data, driver="carpetx", profile=cfg["profile"], config_name=cfg["name"], active_thorns=active,
-                    added_thorns=[], grid=grid, run=run, carpetx_ncells=s.ncells, carpetx_extent=s.extent,
-                    tracking=dict(every=run["out_every"], movement_threshold=None), outer_qlm_radii=s.global_radii,
-                    compact=cfg["compact"], xunit=cfg["xunit"], ecc_cor_velx=cfg["ecc_cor_velx"],
-                    ecc_cor_velz=cfg["ecc_cor_velz"], EOS_gamma=data["EOS_gamma"],
-                    generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                    parfile_sha256=hashlib.sha256(text.encode()).hexdigest())
-    return text, metadata
-
-
 def generate(id_dir, overrides=None):
     """Read the ID, resolve the setup, assemble thorn blocks, and record provenance."""
-    if (overrides or {}).get("driver", "carpet") == "carpetx":
-        return generate_carpetx(id_dir, overrides)
     directory = Path(id_dir).expanduser()
     if (directory / "bhtpar.dat").is_file():
         raise ValueError("BHT uses the dedicated par/bht recipes; this generator supports RNS/BNS/BBH/BBHT")
@@ -2407,7 +2073,7 @@ def main():
                     else f'fixed AMR, horizon checks every {cadence} iterations')
     print(f'Object centres x={array(metadata["centers"])}, '
           f'{activity}, output every {metadata["run"]["out_every"]}')
-    if metadata["kind"] == "bns" and metadata.get("driver") != "carpetx":
+    if metadata["kind"] == "bns":
         print(f'Common refined levels={max(0, grid["common_levels"] - 1)}, '
               f'box movement threshold={metadata["tracking"]["movement_threshold"]:g}')
         print(f'BNS export settings: compact={metadata["compact"]}, '
