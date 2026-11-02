@@ -3,12 +3,13 @@
 
 $itlast=100000000
 $final_time=10000000.0
-$xmax=648.0 # multiple of coarse dx=24 for finest dx=0.1875
-$dx=0.1875*(2**7) # finest dx = 0.1875; exponent is num_levels - 1
+$xmax=1536.0
+$dx=0.125*(2**7) # finest dx = 0.125; exponent is num_levels - 1
 $out_every=128
 $out_every2d=512
 $out_every3d=8192
 $num_levels=8
+$max_levels=10
 
 # Active thorns
 ActiveThorns = "
@@ -115,7 +116,7 @@ CoordBase::dx   =  $dx # exponent is number of ref levels -1, gives that value a
 CoordBase::dy   =  CoordBase::dx
 CoordBase::dz   = CoordBase::dx
 
-CarpetRegrid2::regrid_every =  64
+CarpetRegrid2::regrid_every = $out_every
 CarpetRegrid2::num_centres  =   3
 CarpetRegrid2::movement_threshold_2 = 1.0
 CarpetRegrid2::movement_threshold_3 = 1.0
@@ -129,36 +130,39 @@ CarpetRegrid2::num_levels_1 =   7
 CarpetRegrid2::position_x_1 =   0.0
 CarpetRegrid2::position_y_1 =   0.0
 CarpetRegrid2::position_z_1 =   0.0
-CarpetRegrid2::radius_1[1]  =   512.0
-CarpetRegrid2::radius_1[2]  =   256.0
-CarpetRegrid2::radius_1[3]  =   128.0
-CarpetRegrid2::radius_1[4]  =    64.0
-CarpetRegrid2::radius_1[5]  =    32.0
-CarpetRegrid2::radius_1[6]  =    32.0
+CarpetRegrid2::radius_1[1]  =   768.0
+CarpetRegrid2::radius_1[2]  =   384.0
+CarpetRegrid2::radius_1[3]  =   192.0
+CarpetRegrid2::radius_1[4]  =    96.0
+CarpetRegrid2::radius_1[5]  =    48.0
+CarpetRegrid2::radius_1[6]  =    24.0
+CarpetRegrid2::radius_1[7]  =    12.0
+CarpetRegrid2::radius_1[8]  =     6.0
+CarpetRegrid2::radius_1[9]  =     3.0
 
 CarpetRegrid2::num_levels_2 =   $num_levels
 CarpetRegrid2::position_x_2 =  COCAL_ID::COCAL_ID_cen_x1
 CarpetRegrid2::position_y_2 =   0.0
 CarpetRegrid2::position_z_2 =   0.0
-CarpetRegrid2::radius_2[1]  =   512.0
-CarpetRegrid2::radius_2[2]  =   256.0
-CarpetRegrid2::radius_2[3]  =   128.0
-CarpetRegrid2::radius_2[4]  =    64.0
-CarpetRegrid2::radius_2[5]  =    32.0
-CarpetRegrid2::radius_2[6]  =    16.0
-CarpetRegrid2::radius_2[7]  =     9.0
+CarpetRegrid2::radius_2[1]  =   768.0
+CarpetRegrid2::radius_2[2]  =   384.0
+CarpetRegrid2::radius_2[3]  =   192.0
+CarpetRegrid2::radius_2[4]  =    96.0
+CarpetRegrid2::radius_2[5]  =    48.0
+CarpetRegrid2::radius_2[6]  =    24.0
+CarpetRegrid2::radius_2[7]  =    12.0
 
 CarpetRegrid2::num_levels_3 =   $num_levels
 CarpetRegrid2::position_x_3 =   COCAL_ID::COCAL_ID_cen_x2
 CarpetRegrid2::position_y_3 =   0.0
 CarpetRegrid2::position_z_3 =   0.0
-CarpetRegrid2::radius_3[1]  =   512.0
-CarpetRegrid2::radius_3[2]  =   256.0
-CarpetRegrid2::radius_3[3]  =   128.0
-CarpetRegrid2::radius_3[4]  =    64.0
-CarpetRegrid2::radius_3[5]  =    32.0
-CarpetRegrid2::radius_3[6]  =    16.0
-CarpetRegrid2::radius_3[7]  =     9.0
+CarpetRegrid2::radius_3[1]  =   768.0
+CarpetRegrid2::radius_3[2]  =   384.0
+CarpetRegrid2::radius_3[3]  =   192.0
+CarpetRegrid2::radius_3[4]  =    96.0
+CarpetRegrid2::radius_3[5]  =    48.0
+CarpetRegrid2::radius_3[6]  =    24.0
+CarpetRegrid2::radius_3[7]  =    12.0
 
 CoordBase::boundary_size_x_lower        = 3
 CoordBase::boundary_size_y_lower        = 3
@@ -191,19 +195,19 @@ SpaceMask::use_mask      = "yes"
 Carpet::enable_all_storage       = no
 Carpet::use_buffer_zones         = "yes"
 
-Carpet::poison_new_timelevels    = "yes"
+Carpet::poison_new_timelevels    = "no"
 Carpet::check_for_poison         = "no"
 
 Carpet::init_3_timelevels        = no
 Carpet::init_fill_timelevels     = "yes"
 
-CarpetLib::poison_new_memory = "yes"
+CarpetLib::poison_new_memory = "no"
 CarpetLib::poison_value      = 114
 CarpetLib::support_staggered_operators = "yes"
 
 Carpet::output_timers_every = $out_every
 
-Carpet::max_refinement_levels    = 10
+Carpet::max_refinement_levels    = $max_levels
 driver::ghost_size               = 3
 Carpet::prolongation_order_space = 5
 Carpet::prolongation_order_time  = 2
@@ -444,7 +448,7 @@ GRHayLib::con2prim_routine            = "Palenzuela1D"
 GRHayLib::con2prim_backup_routines[0] = "Newman1D"
 GRHayLib::rho_b_atm                   = 1e-12
 GRHayLib::rho_b_min                   = 1e-12
-GRHayLib::rho_b_max                   = 0.004
+GRHayLib::rho_b_max                   = 0.02
 GRHayLib::Y_e_atm                     = 0.5
 GRHayLib::Y_e_max                     = 0.5
 GRHayLib::T_atm                       = 1e-2
@@ -535,7 +539,7 @@ Trigger::Trigger_Relation[0] = "<"
 Trigger::Trigger_Checked_Value[0] = 0.1
 Trigger::Trigger_Reaction[0] = "steerscalar"
 Trigger::Trigger_Steered_Scalar[0] = "CarpetRegrid2::num_levels[0]"
-Trigger::Trigger_Steered_Scalar_Value[0] = "10"
+Trigger::Trigger_Steered_Scalar_Value[0] = "$max_levels"
 Trigger::Trigger_Once[0] = 1
 
 SystemTopology::set_thread_bindings = "no"

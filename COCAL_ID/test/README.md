@@ -30,11 +30,18 @@ MRNS radial coordinate setup while preserving source-like radial ratios.
 `nt=np=4` keeps a non-degenerate five-point angular grid and preserves the
 quarter-turn indexing assumptions used by the COCAL readers.
 
-Regenerate the fixtures with:
+## Running the tests
 
 ```sh
-COCAL_ID/utils/reduce_cocal_fixture.py
+CCTK_TESTSUITE_RUN_TESTS=COCAL_ID make CONFIG-testsuite PROMPT=no
 ```
 
-By default the script looks for source data in a sibling `COCAL_IDs` directory
-next to the ETK checkout.  Use `--root /path/to/COCAL_IDs` to override this.
+Replace `CONFIG` with the compiled Cactus configuration. The eight stellar
+cases cover RNS CF/WL, tabulated EOS, both MRNS magnetic representations, and
+BNS CO/IR/SP. Their geometric references use the C2 spline, smooth patch joins
+and centre correction; fluid and magnetic references are unchanged. No
+comparison tolerance was relaxed.
+
+The original stellar fixture reducer is not maintained in this repository.
+Keep the checked-in input fixtures rather than recreating them from an
+undocumented source path.

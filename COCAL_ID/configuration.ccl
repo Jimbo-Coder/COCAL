@@ -6,3 +6,8 @@ PROVIDES COCAL_ID
 {
   
 }
+
+# With MPI the spline coefficients are shared by the ranks of a node.
+OPTIONAL MPI
+{
+}

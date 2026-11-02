@@ -108,3 +108,12 @@ CCTK_REAL COCAL_ID_ecc_cor_velx "X velocity of the CoM"
 {
   *:* :: ""
 } 0.0
+
+CCTK_BOOLEAN COCAL_ID_bns_xunit "Use the BNS xunit velocity prescription instead of radial expansion"
+{
+} "False"
+
+# Known MPI failure modes and workarounds: src/cocal_id_node_shared.c.
+CCTK_BOOLEAN COCAL_ID_share_node_memory "Share the COCAL arrays and spline among the MPI ranks of a node (MPI-3 shared memory); no gives every rank a private copy"
+{
+} "yes"

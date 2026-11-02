@@ -1,41 +1,21 @@
-# Schedule definitions for thorn Cocal
+# Schedule definitions for thorn COCAL_ID
 
-if (CCTK_Equals(initial_data, "CocalRNS"))
+if (CCTK_Equals(initial_data, "CocalRNS") || CCTK_Equals(initial_data, "CocalBNS"))
 {
-   SCHEDULE COCAL_ID_read_rns_data IN HydroBase_Initial BEFORE COCAL_ID_rns
+   SCHEDULE COCAL_ID_read_data IN HydroBase_Initial BEFORE COCAL_ID_set_data
    {
       LANG: FORTRAN
       OPTIONS: global
-   } "read COCAL RNS data once per MPI rank"
+   } "Read the COCAL data once per MPI rank"
 
-   SCHEDULE COCAL_ID_rns IN HydroBase_Initial
+   SCHEDULE COCAL_ID_set_data IN HydroBase_Initial
    {
       LANG: FORTRAN
-   } "Interpolate Cocal RNS Initial Data into Cactus"
+   } "Interpolate the COCAL data onto the Cactus grid"
 
-   SCHEDULE COCAL_ID_deallocate_rns AT POSTPOSTINITIAL
-   {
-      LANG: FORTRAN
-      OPTIONS: global
-   } "deallocate all COCAL RNS data"
-}
-
-if (CCTK_Equals(initial_data, "CocalBNS"))
-{
-   SCHEDULE COCAL_ID_read_bns_data IN HydroBase_Initial BEFORE COCAL_ID_bns
+   SCHEDULE COCAL_ID_free_data AT POSTPOSTINITIAL
    {
       LANG: FORTRAN
       OPTIONS: global
-   } "read COCAL BNS data once per MPI rank"
-
-   SCHEDULE COCAL_ID_bns IN HydroBase_Initial
-   {
-      LANG: FORTRAN
-   } "Interpolate Cocal BNS Initial Data into Cactus"
-
-   SCHEDULE COCAL_ID_deallocate_bns AT POSTPOSTINITIAL
-   {
-      LANG: FORTRAN
-      OPTIONS: global
-   } "deallocate all COCAL BNS data"
+   } "Free the COCAL data"
 }
