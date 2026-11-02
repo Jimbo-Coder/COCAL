@@ -16,6 +16,12 @@ TEST cocal_rns_cf_teos
   NPROCS 1
 }
 
+TEST cocal_bht
+{
+  NPROCS 1
+}
+
+
 TEST cocal_mrns_wl_potential
 {
   NPROCS 1
@@ -37,6 +43,36 @@ TEST cocal_bns_ir
 }
 
 TEST cocal_bns_sp
+{
+  NPROCS 1
+}
+
+TEST cocal_bbh_equal
+{
+  NPROCS 1
+}
+
+TEST cocal_bbh_unequal
+{
+  NPROCS 1
+}
+
+TEST cocal_bbh_equal_fill
+{
+  NPROCS 1
+}
+
+TEST cocal_bbh_unequal_fill
+{
+  NPROCS 1
+}
+
+TEST cocal_bbht_mai
+{
+  NPROCS 1
+}
+
+TEST cocal_bbht_mai_fill
 {
   NPROCS 1
 }

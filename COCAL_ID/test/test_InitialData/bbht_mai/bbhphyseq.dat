@@ -1,0 +1,22 @@
+ == Sequence number ==            1
+ ## BH Radii in G = c = 1 unit ##
+ Radius & dis 1st BH=   1.000000000000000E-01  1.249999999999994E+00
+ Radius & dis 2nd BH=   2.000000000000000E-01  1.250000000000001E+00
+ Separation         =   2.499999999999988E+00
+ ## BBH orbital and spin angular velocity parameters ##
+ Omega              =   1.359336031342451E-01
+ Spin      1st BH   =   0.000000000000000E+00
+ Spin axis 1st BH   =   0.000000000000000E+00  0.000000000000000E+00
+ Spin      2nd BH   =   0.000000000000000E+00
+ Spin axis 2nd BH   =   0.000000000000000E+00  0.000000000000000E+00
+ ## Mass and angular momentum (G = c = 1 unit) ##
+ M_ADM (asymptotic) =   5.434544431187029E-01
+ M_K Komar mass     =   5.434544448512485E-01
+ J     (asymptotic) =   2.206536896905432E-01
+ AH mass   1st BH   =   1.903746519577350E-01
+ AH area   1st BH   =   1.821747155517624E+00
+ AH spin   1st BH   =   0.000000000000000E+00
+ AH mass   2nd BH   =   3.607869092422326E-01
+ AH area   2nd BH   =   6.542916800537192E+00
+ AH spin   2nd BH   =   0.000000000000000E+00
+ 1 - M_K/M_ADM      =  -3.188023528755974E-09

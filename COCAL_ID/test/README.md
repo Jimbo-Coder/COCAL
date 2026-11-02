@@ -30,18 +30,20 @@ MRNS radial coordinate setup while preserving source-like radial ratios.
 `nt=np=4` keeps a non-degenerate five-point angular grid and preserves the
 quarter-turn indexing assumptions used by the COCAL readers.
 
+The BHT fixture (`test_InitialData/bht`) is the export
+`bhtD2.0_K1_g1.60_fAJS0.80_000_000_q1.85_l4.00_r0.40_sol_01` on the reduced
+grid of its `rnspar.dat` (`nrgin=16`, so that COCAL's BHT radial grid, with
+eight points inside the horizon, increases monotonically): every 24th theta
+and 12th phi node, interpolated in r from the export's own grid
+(`rnsgrids_3D.las`), cubic for the metric and linear for the Emden function
+and Omega. Its test box, [-0.9,0.9]^3, contains the filled hole and the inner
+torus.
+
 ## Running the tests
 
 ```sh
 CCTK_TESTSUITE_RUN_TESTS=COCAL_ID make CONFIG-testsuite PROMPT=no
 ```
 
-Replace `CONFIG` with the compiled Cactus configuration. The eight stellar
-cases cover RNS CF/WL, tabulated EOS, both MRNS magnetic representations, and
-BNS CO/IR/SP. Their geometric references use the C2 spline, smooth patch joins
-and centre correction; fluid and magnetic references are unchanged. No
-comparison tolerance was relaxed.
-
-The original stellar fixture reducer is not maintained in this repository.
-Keep the checked-in input fixtures rather than recreating them from an
-undocumented source path.
+Replace `CONFIG` with the compiled Cactus configuration. The combined reader
+has 15 native fixture cases.

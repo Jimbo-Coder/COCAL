@@ -28,11 +28,13 @@ implicit none
   integer :: ipgex_hphi(-2:nnpg+2)
 !
 contains
-subroutine grid_extended
+subroutine grid_extended(nr_finite)
 
 implicit none
+  integer, intent(in), optional :: nr_finite
   integer :: irg, itg, ipg, nr
   nr = nrg
+  if (present(nr_finite)) nr = nr_finite
   rgex(0:nr) = rg(0:nr)
   thgex(0:ntg) = thg(0:ntg)
   phigex(0:npg) = phig(0:npg)

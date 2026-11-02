@@ -7,6 +7,9 @@ EXTENDS keyword initial_data
 {
   "CocalRNS" :: "RNS Initial data in Cocal format"
   "CocalBNS" :: "Rotating BNS Initial data in Cocal format"
+  "CocalBBH" :: "Conformally flat three-patch BBH data in Cocal format (WIP)"
+  "CocalBBHT" :: "Conformally flat three-patch BBH plus disk data in Cocal format (WIP)"
+  "CocalBHT" :: "Black hole-torus initial data in Cocal format"
 } 
 
 EXTENDS keyword initial_lapse
@@ -55,6 +58,11 @@ CCTK_KEYWORD COCAL_ID_rnstype "Type of initial data, currently"
   "MRNS_WL" :: "Magnetized Waveless"
 } "RNS_CF"
 
+CCTK_KEYWORD COCAL_ID_bbh_fill_method "Interior fill method for the two BH excisions (BBH/BBHT)"
+{
+  "smooth" :: "Automatic per-hole center estimate and C2 fill from exterior data (src/cocal_id_holes.f90)"
+  "none" :: "Reject points inside either BH excision (exterior diagnostics only)"
+} "smooth"
 
 CCTK_REAL COCAL_ID_cen_x1 "X Position of BNS star 1 for grid centers and diagnostics"
 {
@@ -95,6 +103,10 @@ CCTK_BOOLEAN COCAL_ID_read_tabulated_eos "Read tabulated EOS data when convertin
 {
 } "False"
 
+CCTK_BOOLEAN COCAL_ID_bns_compact "The exported outer BNS grid is compactified, with its last point at infinity"
+{
+} "False"
+
 CCTK_BOOLEAN COCAL_ID_offset_AvecAphi "Evaluate MRNS_WL Avec/Aphi at IllinoisGRMHD staggered locations before HydroBase handoff"
 {
 } "False"
@@ -105,6 +117,16 @@ CCTK_BOOLEAN COCAL_ID_verbose "Enable verbose COCAL reader logging"
 
 
 CCTK_REAL COCAL_ID_ecc_cor_velx "X velocity of the CoM"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_ecc_cor_velx_star[2] "Per-star xunit x coefficient, multiplied by dis_cm; signed global Cartesian components, indices 0/1 are patches 1/2"
+{
+  *:* :: ""
+} 0.0
+
+CCTK_REAL COCAL_ID_ecc_cor_velz_star[2] "Per-star xunit z coefficient, multiplied by dis_cm; signed global Cartesian components, indices 0/1 are patches 1/2"
 {
   *:* :: ""
 } 0.0

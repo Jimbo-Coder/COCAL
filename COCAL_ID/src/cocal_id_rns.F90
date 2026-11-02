@@ -30,7 +30,7 @@ contains
 end module COCAL_ID_rns
 
 ! Collective over the node, once COCAL's grid modules hold the patch's grids:
-! the metric of a one-patch export from rnsgra_3D.las,
+! the metric of a one-patch export (RNS, BHT) from rnsgra_3D.las,
 ! rnsgra_Kij_3D.las and, for waveless data, rnsgra_hij_3D.las, with nextra
 ! further fields for the caller to read. COCAL exports the covariant shift of
 ! the conformal metric; the metric holds beta^i.

@@ -1,6 +1,8 @@
 # Schedule definitions for thorn COCAL_ID
 
-if (CCTK_Equals(initial_data, "CocalRNS") || CCTK_Equals(initial_data, "CocalBNS"))
+if (CCTK_Equals(initial_data, "CocalRNS") || CCTK_Equals(initial_data, "CocalBNS") ||
+    CCTK_Equals(initial_data, "CocalBHT") || CCTK_Equals(initial_data, "CocalBBH") ||
+    CCTK_Equals(initial_data, "CocalBBHT"))
 {
    SCHEDULE COCAL_ID_read_data IN HydroBase_Initial BEFORE COCAL_ID_set_data
    {

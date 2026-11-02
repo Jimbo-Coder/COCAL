@@ -1,8 +1,8 @@
 ! COCAL fields on COCAL's spherical coordinate patches.
 !
-! A domain holds one patch (RNS, a star's fluid) or the three patches of a
-! binary (BNS): one centred on each star, rotated by pi about z for the
-! second, and the outer patch about the common centre. Every
+! A domain holds one patch (RNS, BHT, a star's fluid) or the three patches of
+! a binary (BNS, BBH, BBHT): one centred on each star or hole, rotated by pi
+! about z for the second, and the outer patch about the common centre. Every
 ! field is the C2 spline of cocal_id_spline.f90, and the three metric patches
 ! are blended across their overlaps with C2 weights (below). The node leader
 ! reads the exported fields into raw and fits the node-shared coefficients.
@@ -10,6 +10,14 @@
 ! Per patch, a reader can mark fields that
 !   - change sign between the stored and the global Cartesian basis (flip),
 !   - must be positive at a valid point (positive),
+!   - vary like 1/r about a hole at the patch centre, fitted as r*f (r_scaled),
+!   - vanish outside the matter, on a grid that does not fit its surface (a
+!     torus or disk on the gravitational grid; support). The spline rings
+!     across the surface's kink; with L the trilinear interpolant of the
+!     nodes and I that of the indicator of nodes above support_floor, the
+!     value is min(spline, max(L, I*spline)): the spline in cells of matter
+!     nodes, vacuum in cells of vacuum nodes, at least min(spline, L) in the
+!     cells between, and continuous everywhere.
 ! A surface-fitted patch has radial coordinate r/rs(theta,phi), as on
 ! COCAL's fluid grids, with rs exported beside the fields.
 
@@ -30,6 +38,9 @@ module COCAL_ID_domain
     real(8) :: dis = 0.0d0       ! distance of the patch centre from the domain centre
     real(8) :: ex_radius = 0.0d0 ! companion excision radius (star patches)
     integer, allocatable :: flip_indices(:), positive_indices(:)
+    integer, allocatable :: r_scaled_indices(:)
+    integer :: support_index = 0
+    real(8) :: support_floor = 0.0d0
     logical :: surface_fitted = .false.
     real(8), allocatable :: rg(:), thg(:), phig(:) ! rg(0:nr), thg(0:nt), phig(0:np)
 
@@ -41,10 +52,10 @@ module COCAL_ID_domain
     real(8), allocatable :: raw(:,:,:,:), raw_surface(:,:)
 
     ! Node-shared spline coefficients (1:nvars, 0:nr, 0:nt, 0:np-1), surface
-    ! coefficients (1, 0, 0:nt, 0:np-1) and, for matter, the marks of rough
-    ! angular data (cocal_id_spline.f90) (0:nr, 0:nt, 0:np-1).
+    ! coefficients (1, 0, 0:nt, 0:np-1), support node values and, for matter,
+    ! the marks of rough angular data (cocal_id_spline.f90) (0:nr, 0:nt, 0:np-1).
     real(8), pointer :: sf(:,:,:,:) => null(), sm(:,:,:,:) => null(), rough(:,:,:) => null()
-    real(8), pointer :: surface(:,:,:,:) => null()
+    real(8), pointer :: surface(:,:,:,:) => null(), support(:,:,:) => null()
   end type cocal_patch
 
   type :: cocal_domain
@@ -95,13 +106,18 @@ contains
 
   ! Node leader only, once patch m's grids are set; the leader then fills
   ! raw(:, 0:nr, 0:nt, 0:np), and raw_surface if surface fitted, both zeroed
-  ! here.
-  subroutine COCAL_ID_domain_alloc_raw(dom, m)
+  ! here. A file with more radial points than the patch keeps (nr_file > nr)
+  ! is read whole; the fit uses 0:nr.
+  subroutine COCAL_ID_domain_alloc_raw(dom, m, nr_file)
     type(cocal_domain), intent(inout) :: dom
     integer, intent(in) :: m
+    integer, intent(in), optional :: nr_file
+    integer :: nr
 
     associate(p => dom%patch(m))
-      allocate(p%raw(dom%nvars, 0:p%nr, 0:p%nt, 0:p%np))
+      nr = p%nr
+      if (present(nr_file)) nr = max(nr, nr_file)
+      allocate(p%raw(dom%nvars, 0:nr, 0:p%nt, 0:p%np))
       p%raw = 0.0d0
       if (p%surface_fitted) then
         allocate(p%raw_surface(0:p%nt, 0:p%np))
@@ -121,7 +137,7 @@ contains
     logical, intent(out) :: ok
     real(8), intent(in) :: star_extent
     logical :: leader
-    integer :: m, iv
+    integer :: m, ir, iv
     real(8) :: scale(dom%nvars)
 
     leader = COCAL_ID_node_leader()
@@ -134,6 +150,7 @@ contains
         call COCAL_ID_node_alloc_4d(p%sm, dom%nvars, p%nr, p%nt, p%np)
         if (.not. dom%metric) call COCAL_ID_node_alloc_3d(p%rough, p%nr, p%nt, p%np - 1)
         if (p%surface_fitted) call COCAL_ID_node_alloc_4d(p%surface, 1, 0, p%nt, p%np)
+        if (p%support_index > 0) call COCAL_ID_node_alloc_3d(p%support, p%nr, p%nt, p%np - 1)
       end associate
     end do
     if (.not. ok) return
@@ -142,11 +159,17 @@ contains
       do m = 1, dom%npatches
         associate(p => dom%patch(m))
           p%sf = p%raw(:, 0:p%nr, :, 0:p%np - 1)
+          if (p%support_index > 0) p%support = p%raw(p%support_index, 0:p%nr, :, 0:p%np - 1)
         end associate
       end do
       if (dom%npatches == 3) call fill_companion(dom)
       do m = 1, dom%npatches
         associate(p => dom%patch(m))
+          if (allocated(p%r_scaled_indices)) then
+            do ir = 0, p%nr
+              p%sf(p%r_scaled_indices, ir, :, :) = p%rg(ir)*p%sf(p%r_scaled_indices, ir, :, :)
+            end do
+          end if
           if (associated(p%rough)) scale = [(maxval(abs(p%sf(iv, :, :, :))), iv = 1, dom%nvars)]
           call COCAL_ID_spline_fit(p%rg, p%nt, p%np, p%sf, p%sm, dom%metric)
           if (associated(p%rough)) call COCAL_ID_spline_rough(p%nt, p%np, p%sf, scale, p%rough)
@@ -226,7 +249,8 @@ contains
     real(8), intent(out) :: vals(dom%nvars)
     logical, intent(out) :: ok
     logical, intent(in) :: lagrange
-    real(8) :: s
+    real(8) :: s, f(3), w, node, lin, ind
+    integer :: cell(3), a, b, c
 
     associate(p => dom%patch(m))
       if (lagrange) then
@@ -235,7 +259,27 @@ contains
         s = 1.0d0
         if (associated(p%surface)) s = 1.0d0/COCAL_ID_spline_eval_angular(p%nt, p%np, p%surface, xc, yc, zc)
         ! A metric's rough is null, which leaves the optional argument absent.
-        call COCAL_ID_spline_eval(p%rg, p%nt, p%np, p%sf, p%sm, s*xc, s*yc, s*zc, vals, ok, rough=p%rough)
+        call COCAL_ID_spline_eval(p%rg, p%nt, p%np, p%sf, p%sm, s*xc, s*yc, s*zc, vals, ok, cell, f, p%rough)
+        if (ok .and. allocated(p%r_scaled_indices)) vals(p%r_scaled_indices) = &
+          vals(p%r_scaled_indices)/max(p%rg(0), sqrt(xc*xc + yc*yc + zc*zc))
+        if (ok .and. p%support_index > 0) then
+          lin = 0.0d0
+          ind = 0.0d0
+          do c = 0, 1
+            do b = 0, 1
+              do a = 0, 1
+                w = merge(f(1), 1.0d0 - f(1), a == 1)*merge(f(2), 1.0d0 - f(2), b == 1) &
+                    *merge(f(3), 1.0d0 - f(3), c == 1)
+                node = p%support(cell(1) + a, cell(2) + b, modulo(cell(3) + c, p%np))
+                lin = lin + w*node
+                if (node > p%support_floor) ind = ind + w
+              end do
+            end do
+          end do
+          associate(v => vals(p%support_index))
+            v = min(v, max(lin, ind*v))
+          end associate
+        end if
       end if
       if (.not. ok) return
       if (allocated(p%flip_indices)) vals(p%flip_indices) = -vals(p%flip_indices)
@@ -249,7 +293,7 @@ contains
   ! fit sees no stale data.
   subroutine fill_companion(dom)
     type(cocal_domain), intent(inout) :: dom
-    real(8) :: xc, yc, zc, v(dom%nvars)
+    real(8) :: xc, yc, zc, ox, oy, r, s, v(dom%nvars)
     integer :: m, ir, it, ip
     logical :: ok
 
@@ -263,8 +307,22 @@ contains
               zc = p%rg(ir)*cos(p%thg(it))
               if ((xc - dom%sepa)**2 + yc*yc + zc*zc >= p%ex_radius**2) cycle
               ! The companion's frame is this one rotated by pi about z and
-              ! centred sepa along x.
-              call patch_eval(dom, 3 - m, dom%sepa - xc, -yc, zc, v, ok, .true.)
+              ! centred sepa along x. Nodes inside the companion's own inner
+              ! boundary (a hole) take the value on that boundary.
+              ox = dom%sepa - xc
+              oy = -yc
+              r = sqrt(ox*ox + oy*oy + zc*zc)
+              s = 1.0d0
+              associate(o => dom%patch(3 - m))
+                if (r < o%rg(0)) then
+                  if (r > 0.0d0) then
+                    s = o%rg(0)*(1.0d0 + 1.0d-12)/r
+                  else
+                    ox = o%rg(0)*(1.0d0 + 1.0d-12)
+                  end if
+                end if
+              end associate
+              call patch_eval(dom, 3 - m, s*ox, s*oy, s*zc, v, ok, .true.)
               if (.not. ok) cycle
               if (allocated(p%flip_indices)) v(p%flip_indices) = -v(p%flip_indices)
               p%sf(:, ir, it, ip) = v
@@ -348,6 +406,8 @@ contains
         do ii = 1, 4
           w = wr4(ii)*wth4(jj)*wphi4(kk)
           f = p%raw(:, ir0 + ii - 1, it, ip)
+          if (allocated(p%r_scaled_indices)) &
+            f(p%r_scaled_indices) = f(p%r_scaled_indices)*r4(ii)/rc
           vals = vals + w*f
         end do
       end do

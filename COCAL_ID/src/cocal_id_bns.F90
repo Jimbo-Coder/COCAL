@@ -6,7 +6,7 @@ module COCAL_ID_bns
   use COCAL_ID_domain
   implicit none
   private
-  public :: bns_star, bns_stars, bns_id_type, bns_dis, bns_xunit, bns_ecc_velx
+  public :: bns_star, bns_stars, bns_id_type, bns_dis, bns_xunit, bns_ecc_velx, bns_ecc_star
   public :: BNS_EMD, BNS_DVEP, BNS_W, COCAL_ID_bns_matter
 
   ! Matter fields: Emden function, gradient of the velocity potential
@@ -23,9 +23,9 @@ module COCAL_ID_bns
   character(2), save :: bns_id_type = ''
   ! Distance of each star patch centre from the binary's centre.
   real(8), save :: bns_dis = 0
-  ! Eccentricity-reduction velocity (param.ccl).
+  ! Eccentricity-reduction velocities (param.ccl).
   logical, save :: bns_xunit = .false.
-  real(8), save :: bns_ecc_velx = 0
+  real(8), save :: bns_ecc_velx = 0, bns_ecc_star(2,2) = 0
 
 contains
 
@@ -62,6 +62,10 @@ contains
       else
         beta = beta + bns_ecc_velx*[orbital_x, yc, zc]
       end if
+      ! Signed global Cartesian coefficients, normalized by the same
+      ! half-separation as the scalar xunit prescription.
+      beta(1) = beta(1) + bns_ecc_star(1, star)*bns_dis
+      beta(3) = beta(3) + bns_ecc_star(2, star)*bns_dis
 
       alph = q(M_ALP)
       psi4 = q(M_PSI)**4
@@ -120,7 +124,8 @@ subroutine COCAL_ID_read_bns(dir)
   character(*), parameter :: fmt = "20.12"
   character(400) :: msg
   character(2) :: id_type_p2
-  logical :: leader, ok
+  character(1) :: patch
+  logical :: exported_grids(3), leader, ok
   integer :: impt, nmatter, igrid
   real(8) :: radi_tol, star_extent, rs_max(2), dis_cm
 
@@ -142,7 +147,16 @@ subroutine COCAL_ID_read_bns(dir)
   end select
   bns_xunit = COCAL_ID_bns_xunit == 1
   bns_ecc_velx = COCAL_ID_ecc_cor_velx
-  igrid = 4     ! Legacy grids (rg(nrf) = 1).
+  bns_ecc_star(1, :) = COCAL_ID_ecc_cor_velx_star
+  bns_ecc_star(2, :) = COCAL_ID_ecc_cor_velz_star
+
+  do impt = 1, 3
+    write(patch, '(i1)') impt
+    inquire(file=dir//'/bnsgrids_3D_mpt'//patch//'.las', exist=exported_grids(impt))
+  end do
+  if (any(exported_grids) .and. .not. all(exported_grids)) &
+    call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID BNS: supply exported grids for all three patches, or none for legacy data.")
+  igrid = 4     ! Legacy grids only (rg(nrf) = 1); exported grids take precedence.
 
   ! COCAL's parameters for each patch.
   call COCAL_ID_allocate_grid_parameter_mpt
@@ -177,7 +191,8 @@ subroutine COCAL_ID_read_bns(dir)
     else
       call COCAL_ID_copy_def_peos_parameter_from_mpt(impt)
     end if
-    call COCAL_ID_coordinate_patch_kit_grav_grid_coc2cac_mpt(igrid, impt)
+    call COCAL_ID_coordinate_patch_kit_grav_grid_coc2cac_mpt(igrid, impt, cocal_dir, fmt, &
+                                                             COCAL_ID_bns_compact == 1 .and. impt == 3)
     call calc_parameter_binary_excision
     call COCAL_ID_copy_grid_parameter_to_mpt(impt)
     call COCAL_ID_copy_grid_parameter_binary_excision_to_mpt(impt)
@@ -244,7 +259,12 @@ contains
 
     write(patch, '(i1)') impt
     associate(p => cocal_metric%patch(impt))
-      call COCAL_ID_patch_set_grids(p, rg(0:nrg), thg(0:ntg), phig(0:npg))
+      ! A compact export's last radial point is at infinity: read it, but fit 0:nrg-1.
+      if (impt == 3 .and. COCAL_ID_bns_compact == 1) then
+        call COCAL_ID_patch_set_grids(p, rg(0:nrg - 1), thg(0:ntg), phig(0:npg))
+      else
+        call COCAL_ID_patch_set_grids(p, rg(0:nrg), thg(0:ntg), phig(0:npg))
+      end if
       p%dis = dis
       if (impt <= 2) p%ex_radius = p%rg(ex_nrg)
       p%positive_indices = [M_PSI, M_ALP]
@@ -264,7 +284,7 @@ contains
 
     ! Each name below is a view of one field of raw, which COCAL's reading
     ! routines fill in place and the spline fit then consumes.
-    call COCAL_ID_domain_alloc_raw(cocal_metric, impt)
+    call COCAL_ID_domain_alloc_raw(cocal_metric, impt, nrg)
     associate(raw => cocal_metric%patch(impt)%raw)
       psi(0:,0:,0:)  => raw(M_PSI,:,:,:);    alph(0:,0:,0:) => raw(M_ALP,:,:,:)
       bvxd(0:,0:,0:) => raw(M_BETA,:,:,:);   bvyd(0:,0:,0:) => raw(M_BETA+1,:,:,:); bvzd(0:,0:,0:) => raw(M_BETA+2,:,:,:)

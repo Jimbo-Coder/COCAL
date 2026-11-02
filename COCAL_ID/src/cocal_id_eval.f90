@@ -1,11 +1,13 @@
-! The state at one Cactus point, for every ID: the metric at the point, then
-! the ID's matter, composed with that metric.
+! The state at one Cactus point, for every ID: the metric (or a hole's fill)
+! at the point, then the ID's matter, composed with that metric.
 
 module COCAL_ID_eval
   use COCAL_ID_state
   use COCAL_ID_domain
+  use COCAL_ID_holes
   use COCAL_ID_rns, only : COCAL_ID_rns_em
   use COCAL_ID_bns, only : COCAL_ID_bns_matter
+  use COCAL_ID_bbh, only : COCAL_ID_bbht_matter
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
   implicit none
   private
@@ -20,21 +22,29 @@ contains
     real(8), intent(out) :: s(NSTATE)
     logical, intent(out) :: ok
     real(8) :: xc, yc, zc, q(cocal_metric%nvars)
+    logical :: inside
 
     s = 0.0d0
     xc = x/cocal_radi
     yc = y/cocal_radi
     zc = z/cocal_radi
-    call COCAL_ID_domain_eval(cocal_metric, xc, yc, zc, q, ok)
+    call COCAL_ID_holes_eval(xc, yc, zc, q, inside, ok)
+    if (.not. inside) call COCAL_ID_domain_eval(cocal_metric, xc, yc, zc, q, ok)
     if (.not. ok) return
     call COCAL_ID_metric_to_state(q, s)
-    select case (cocal_kind)
-    case (COCAL_RNS)
-      call COCAL_ID_rotating_matter(xc, yc, zc, q, s)
-      call COCAL_ID_rns_em(q, s)
-    case (COCAL_BNS)
-      call COCAL_ID_bns_matter(xc, yc, zc, q, s)
-    end select
+    if (.not. inside) then
+      select case (cocal_kind)
+      case (COCAL_RNS)
+        call COCAL_ID_rotating_matter(xc, yc, zc, q, s)
+        call COCAL_ID_rns_em(q, s)
+      case (COCAL_BHT)
+        call COCAL_ID_rotating_matter(xc, yc, zc, q, s)
+      case (COCAL_BNS)
+        call COCAL_ID_bns_matter(xc, yc, zc, q, s)
+      case (COCAL_BBHT)
+        call COCAL_ID_bbht_matter(xc, yc, zc, q, s)
+      end select
+    end if
     ok = all(ieee_is_finite(s)) .and. COCAL_ID_speed2(s) < 1.0d0
   end subroutine COCAL_ID_eval_point
 

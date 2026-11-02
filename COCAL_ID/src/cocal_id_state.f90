@@ -19,7 +19,7 @@ module COCAL_ID_state
   integer, parameter :: M_PSI = 1, M_ALP = 2, M_BETA = 3, M_K = 6, M_H = 12
   integer, parameter :: NMETRIC_CF = 11, NMETRIC_WL = 17
 
-  ! Matter fields of a rotating star (RNS, MRNS): Emden function
+  ! Matter fields of a rotating star or torus (RNS, MRNS, BHT): Emden function
   ! emd = P/rho, angular velocity Omega and, for MRNS, the 4-velocity u^mu.
   integer, parameter :: MAT_EMD = 1, MAT_OMEGA = 2, MAT_U = 3
 
@@ -28,7 +28,7 @@ module COCAL_ID_state
   integer, parameter :: S_RHO = 17, S_PRESS = 18, S_EPS = 19, S_VEL = 20
   integer, parameter :: S_AVEC = 23, S_APHI = 26, S_BVEC = 27, NSTATE = 29
 
-  integer, parameter :: COCAL_RNS = 1, COCAL_BNS = 2
+  integer, parameter :: COCAL_RNS = 1, COCAL_BNS = 2, COCAL_BHT = 3, COCAL_BBH = 4, COCAL_BBHT = 5
 
   ! COCAL's vacuum threshold for the Emden function.
   real(8), parameter :: EMD_VACUUM = 1.0d-14
@@ -80,7 +80,7 @@ contains
     s(S_VEL:S_VEL + 2) = v
   end subroutine COCAL_ID_set_fluid
 
-  ! Fluid of a rotating star at COCAL point (xc,yc,zc), with metric
+  ! Fluid of a rotating star or torus at COCAL point (xc,yc,zc), with metric
   ! fields q there: v^i = (u^i/u^t + beta^i)/alpha, with u^i/u^t = Omega
   ! (-y, x, 0) unless the 4-velocity is exported (MRNS).
   subroutine COCAL_ID_rotating_matter(xc, yc, zc, q, s)

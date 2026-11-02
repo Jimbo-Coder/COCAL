@@ -24,6 +24,8 @@ subroutine COCAL_ID_set_data(CCTK_ARGUMENTS)
   set_bvec = CCTK_EQUALS(initial_Bvec, "Cocal")
   set_avec = CCTK_EQUALS(initial_Avec, "Cocal")
   set_aphi = CCTK_EQUALS(initial_Aphi, "Cocal")
+  if (set_hydro .and. cocal_kind == COCAL_BBH) &
+    call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: BBH data contain no matter; set HydroBase::initial_hydro = zero.")
   if (set_avec .neqv. set_aphi) &
     call CCTK_WARN(CCTK_WARN_ABORT, "COCAL_ID: initial_Avec and initial_Aphi must both be Cocal or neither.")
   if (set_avec .and. rns_em /= RNS_EM_POTENTIAL) &

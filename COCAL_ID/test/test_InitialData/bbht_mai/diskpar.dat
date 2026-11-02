@@ -1,0 +1,12 @@
+&bbht_disk
+ disk_rin = 6.07d0,
+ disk_rout = 21.021649d0,
+ disk_rho_target = 1.0d-6,
+ index_DR_disk = 1.99d0,
+ disk_logk = 0.0d0,
+ disk_relax = 0.2d0,
+ disk_tolerance = 1.0d-6,
+ disk_start = 'NEW',
+ disk_seed_vacuum = .true.,
+ disk_restart_file = 'disk_state.ini'
+/
