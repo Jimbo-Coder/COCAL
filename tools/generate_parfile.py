@@ -127,7 +127,7 @@ HYDRO_THORNS = {
     "GRHydro": {"black_hole_interior": False},
 }
 # Gauge settings use the shared vocabulary below. These additional controls
-# retain their native names and meanings; they cannot override the gauge map.
+# keep their solver's names and meanings; they cannot override the gauge map.
 SPACETIME_OPTIONS = {
     "Baikal": {"diss_strength": float, "newrad_aDD_radpower": int},
     "BaikalVacuum": {"diss_strength": float},
@@ -489,7 +489,7 @@ def resolve_grid(data, overrides, local):
         return fine_support + coarse_support
 
     # 2. Cover the surface allowance after tracking lag and centre rounding.
-    # The local profile retains its small-fixture minimum half-width.
+    # The local profile keeps a minimum half-width for the small fixtures.
     tracking_margin = grid["movement_cells"] * dx if bns else 0.0
     rounding_margin = dx / 2 if bns else 0.0
     fine = []
@@ -511,7 +511,7 @@ def resolve_grid(data, overrides, local):
     # Keep at least the finest level star-centred. The overlap must cover half
     # the smaller box's x-width; a mere first touch is a poor handoff to a cube.
     separation = abs(centers[1] - centers[0]) if bns else 0
-    # Retained only for diagnostic-sphere choices, not for constructing grids.
+    # Only for the diagnostic spheres, not the grid.
     wide = bns and separation > 8 * max(radii)
     common_levels = grid["common_levels"]
     if common_levels is not None:
@@ -533,7 +533,7 @@ def resolve_grid(data, overrides, local):
 
     common_boxes = []
     if bns and not local:
-        # Inactive central radii retain the stellar size scale for later collapse.
+        # Inactive central radii follow the stellar size, for a later collapse.
         common_boxes = [max(boxes[level - 1] for boxes in star_boxes)
                         for level in range(1, levels)]
         for level in range(levels - 2, 0, -1):
@@ -1104,7 +1104,7 @@ def cocal_id(s):
             for star, value in enumerate(cfg["ecc_cor_velx"]):
                 reader[f"COCAL_ID_ecc_cor_velx_star[{star}]"] = real(value)
         else:
-            # A scalar retains the established radial/xunit prescription.
+            # A scalar is the radial/xunit coefficient for both stars.
             reader["COCAL_ID_ecc_cor_velx"] = real(cfg["ecc_cor_velx"])
         velz = velocity_pair(cfg["ecc_cor_velz"], "ecc_cor_velz")
         if any(velz):
@@ -1305,7 +1305,7 @@ def volume_integrals_grmhd(s):
     if not s.bns:
         return Block({"NumIntegrals": 1, "VolIntegral_out_every": "$out_every", **output,
                       "Integration_quantity_keyword[1]": '"restmass"'}, labels={1: "Whole-domain rest mass"})
-    # Fixed slots preserve the existing postprocessing column mapping.
+    # Fixed slots, so the integral columns are the same for every run.
     matter = {"NumIntegrals": 8, "VolIntegral_out_every": "$track_every", **output,
               "Integration_quantity_keyword[1]": '"centerofmass"', "Integration_quantity_keyword[6]": '"restmass"'}
     labels = {1: "Whole-domain CoM", 6: "Whole-domain rest mass"}
@@ -1708,23 +1708,23 @@ def cx_ode_solvers(s):
 
 def cx_cocal_idx(s):
     data = s.data
-    reader = {"COCAL_ID_PathToID": quoted(data["id"]), "COCAL_ID_verbose": "no"}
+    reader = {"COCAL_IDX_PathToID": quoted(data["id"]), "COCAL_IDX_verbose": "no"}
     if s.bns:
         cfg = s.cfg
         if cfg["compact"]:
-            reader["COCAL_ID_bns_compact"] = "yes"
+            reader["COCAL_IDX_bns_compact"] = "yes"
         if cfg["xunit"]:
-            reader["COCAL_ID_bns_xunit"] = "yes"
+            reader["COCAL_IDX_bns_xunit"] = "yes"
         if isinstance(cfg["ecc_cor_velx"], (list, tuple)):
-            reader.update({f"COCAL_ID_ecc_cor_velx_star[{i}]": real(v) for i, v in enumerate(cfg["ecc_cor_velx"])})
+            reader.update({f"COCAL_IDX_ecc_cor_velx_star[{i}]": real(v) for i, v in enumerate(cfg["ecc_cor_velx"])})
         else:
-            reader["COCAL_ID_ecc_cor_velx"] = real(cfg["ecc_cor_velx"])
+            reader["COCAL_IDX_ecc_cor_velx"] = real(cfg["ecc_cor_velx"])
         velz = velocity_pair(cfg["ecc_cor_velz"], "ecc_cor_velz")
         if any(velz):
-            reader.update({f"COCAL_ID_ecc_cor_velz_star[{i}]": real(v) for i, v in enumerate(velz)})
-        reader.update({f"COCAL_ID_cen_x{i}": real(x) for i, x in enumerate(s.centers, 1)})
+            reader.update({f"COCAL_IDX_ecc_cor_velz_star[{i}]": real(v) for i, v in enumerate(velz)})
+        reader.update({f"COCAL_IDX_cen_x{i}": real(x) for i, x in enumerate(s.centers, 1)})
     else:
-        reader["COCAL_ID_rnstype"] = quoted(data["rnstype"])
+        reader["COCAL_IDX_rnstype"] = quoted(data["rnstype"])
     return Block(reader, "COCAL initial data")
 
 

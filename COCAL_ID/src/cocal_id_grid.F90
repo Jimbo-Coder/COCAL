@@ -1,6 +1,5 @@
-! The Carpet grid: the COCAL values at every point of the Cactus grid.
-! Included by COCAL_ID_master.F90, which is the same in COCALX (CarpetX);
-! only this file, the driver's, differs.
+! The COCAL values at every point of the Cactus grid. Included by
+! COCAL_ID_master.F90.
 
 subroutine COCAL_ID_set_data(CCTK_ARGUMENTS)
   use COCAL_ID_state
