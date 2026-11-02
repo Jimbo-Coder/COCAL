@@ -154,8 +154,7 @@ subroutine COCAL_ID_read_data(CCTK_ARGUMENTS)
   end if
 end subroutine COCAL_ID_read_data
 
-! The values on the grid: the driver's own file (Carpet: the grid loop;
-! CarpetX: a point evaluator for its C++ loops).
+! The grid loop.
 #include "cocal_id_grid.F90"
 
 ! Collective over the node.
