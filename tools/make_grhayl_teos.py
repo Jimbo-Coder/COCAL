@@ -244,7 +244,7 @@ def write_table(
         with h5py.File(output_path, "w") as dst:
             copy_attrs(src.attrs, dst.attrs)
             dst.attrs["source_table"] = str(input_path)
-            dst.attrs["generated_by"] = "COCAL_ID/utils/make_grhayl_teos.py"
+            dst.attrs["generated_by"] = "tools/make_grhayl_teos.py"
             dst.attrs["rho_stride"] = rho_stride
             dst.attrs["temp_stride"] = temp_stride
             dst.attrs["ye_stride"] = ye_stride
@@ -724,7 +724,7 @@ def write_compose_table(
     with h5py.File(output_path, "w") as dst:
         dst.attrs["source_table"] = str(input_path)
         dst.attrs["source_format"] = "raw_compose"
-        dst.attrs["generated_by"] = "COCAL_ID/utils/make_grhayl_teos.py"
+        dst.attrs["generated_by"] = "tools/make_grhayl_teos.py"
         dst.attrs["energy_zero"] = energy_zero
         dst.attrs["density_mass"] = density_mass
         dst.attrs["chemical_potential_zero"] = chemical_potential_zero

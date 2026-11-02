@@ -1,10 +1,10 @@
-# COCAL parfile generator
+# COCAL tools
 
-[generate_parfile.py](generate_parfile.py) writes a Carpet (or CarpetX) parfile
-and a JSON record for a COCAL ID. It is one script using only the Python
-standard library, the same on main and dev. Main's reader supports RNS and
-BNS; BBH, BBHT and the per-star velocities need dev. BHT and magnetized MRNS
-start from their example parfiles.
+[generate_parfile.py](generate_parfile.py) writes a Carpet parfile and a JSON
+record for a COCAL ID. It is one script using only the Python standard
+library, the same on main and dev. Main's reader supports RNS and BNS; BBH,
+BBHT and the per-star velocities need dev. BHT and magnetized MRNS start from
+their example parfiles.
 
 ## Usage
 
@@ -45,12 +45,12 @@ against the executable.
 
 ## Thorns
 
-`default_thorns` (stars), `bbh_thorns` and `carpetx_thorns` near the top are
-the thorn selections; comment out a diagnostic to drop it with its parameters
-and output. An entry's `active_thorns` replaces the selection for that run.
-Dependencies are added from `THORN_DEPENDENCIES` (selecting
-QuasiLocalMeasures adds SphericalSurface and TGRtensor). The executable must
-contain every resolved thorn.
+`default_thorns` (stars) and `bbh_thorns` near the top are the thorn
+selections; comment out a diagnostic to drop it with its parameters and
+output. An entry's `active_thorns` replaces the selection for that run.
+Dependencies are added from `THORN_DEPENDENCIES` (selecting QuasiLocalMeasures
+adds SphericalSurface and TGRtensor). The executable must contain every
+resolved thorn.
 
 ## Solvers and gauge
 
@@ -188,23 +188,24 @@ using surface values.
 Moving stacks on macOS need a fix to the libc++ comparator in Carpet's
 `CarpetLib/src/bboxset2.hh`.
 
-## CarpetX
+## Tabulated EOS tables
 
-`"driver": "carpetx"` writes a CarpetX + AsterX + Z4c parfile for
-[COCALX](https://github.com/Jimbo-Coder/COCALX), for RNS and BNS IDs with
-one polytrope:
+`make_grhayl_teos.py` converts a raw CompOSE `eos.zip`/directory to the
+HDF5 tabulated-EOS schema read by GRHayL, or validates and downsamples an
+existing NRPyEOS/NuLib-style HDF5 table. It requires NumPy and h5py. For
+example:
 
-```python
-    {"name": "bns-carpetx", "id_dir": "/path/to/SP_K123.6_000", "driver": "carpetx"},
+```shell
+uv run --with numpy --with h5py python tools/make_grhayl_teos.py \
+  eos.zip DD2_GRHayL_NRPyEOS.h5 --force
 ```
 
-The grid is the Carpet recipe's, as a base grid of whole 8-cell blocks and
-BoxInBox regions; the rest follows COCALX's examples. The ID uses COCAL's
-polytrope and the evolution an ideal gas of the same Gamma, since AsterX needs
-a temperature. `profile`, `grid`, the BNS velocity settings, `gauge.eta` and
-`run` (`iterations`, `final_time`, `dtfac`, `out_every`, `out3d_every`,
-`walltime_hours`, `checkpoint_hours`) apply. Tabulated and piecewise EOS,
-MRNS and black holes are refused; start those from COCALX's examples.
+COCAL's `teos_parameter.dat` is only a cold beta-equilibrium slice used while
+mapping COCAL initial data. It is not a replacement for the hot
+three-dimensional table required by GRHayLHD evolution.
+
+`validate_teos_output.py` compares COCAL_ID density and pressure output
+against the COCAL TEOS slice and can write an SVG residual plot.
 
 ## Adding to the generator
 
@@ -212,6 +213,6 @@ MRNS and black holes are refused; start those from COCALX's examples.
 (`resolve_stellar()` or `resolve_black_holes()`), builds the shared geometry
 (`Setup`: surfaces, spheres, horizon searches), calls each active thorn's
 function and writes the parfile and JSON. Each thorn's parameters come from
-one function listed in `BLOCKS` (`CARPETX_BLOCKS` for CarpetX), for stars and
+one function listed in `BLOCKS`, for stars and
 black holes alike. For a new thorn, add its dependencies to
 `THORN_DEPENDENCIES`, write its function and list it.
